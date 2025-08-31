@@ -84,16 +84,105 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// --- Equipment Routes (with Search & Pagination) ---
-app.get('/api/equipment', authenticateToken, (req, res) => {
-    if (req.user.role !== 'admin') {
+// --- Repair Request Routes ---
+app.get('/api/repairs', authenticateToken, (req, res) => {
+    let sql = `
+        SELECT 
+            rr.id, rr.problemDescription, rr.requestDate, rr.status,
+            e.assetNumber, u.fullName as requestUser
+        FROM repair_requests rr
+        JOIN equipment e ON rr.equipmentId = e.id
+        JOIN users u ON rr.userId = u.id
+    `;
+    const params = [];
+    if (req.user.role === 'user') {
+        sql += ' WHERE rr.userId = ?';
+        params.push(req.user.id);
+    }
+    sql += ' ORDER BY rr.requestDate DESC';
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ message: "Server error" });
+        res.json(rows);
+    });
+});
+
+app.post('/api/repairs', authenticateToken, (req, res) => {
+    const { assetNumber, problemDescription } = req.body;
+    const userId = req.user.id;
+    if (!assetNumber || !problemDescription) {
+        return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+    }
+    db.get('SELECT id FROM equipment WHERE assetNumber = ?', [assetNumber], (err, equipment) => {
+        if (err) return res.status(500).json({ message: "Server error" });
+        if (!equipment) return res.status(404).json({ message: "ไม่พบครุภัณฑ์หมายเลขนี้" });
+        const equipmentId = equipment.id;
+        const requestDate = new Date().toISOString();
+        const sql = 'INSERT INTO repair_requests (equipmentId, userId, problemDescription, requestDate, status) VALUES (?, ?, ?, ?, ?)';
+        db.run(sql, [equipmentId, userId, problemDescription, requestDate, 'Pending'], function(err) {
+            if (err) return res.status(500).json({ message: "ไม่สามารถสร้างใบแจ้งซ่อมได้" });
+            res.status(201).json({ message: "แจ้งซ่อมสำเร็จ!", repairId: this.lastID });
+        });
+    });
+});
+
+app.put('/api/repairs/:id', authenticateToken, (req, res) => {
+    if (req.user.role !== 'admin' && req.user.role !== 'technician') {
         return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
     }
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const offset = (page - 1) * limit;
+    const { status } = req.body;
+    const { id } = req.params;
+    const sql = 'UPDATE repair_requests SET status = ? WHERE id = ?';
+    db.run(sql, [status, id], function(err) {
+        if (err) return res.status(500).json({ message: "อัปเดตสถานะไม่สำเร็จ" });
+        if (this.changes === 0) return res.status(404).json({ message: "ไม่พบรายการที่ต้องการอัปเดต" });
+        res.json({ message: "อัปเดตสถานะสำเร็จ" });
+    });
+});
+
+// --- Equipment Routes ---
+app.get('/api/equipment/details/:assetNumber', authenticateToken, (req, res) => {
+    const { assetNumber } = req.params;
+    const sql = "SELECT name, type, location, status FROM equipment WHERE assetNumber = ?";
+    db.get(sql, [assetNumber], (err, row) => {
+        if (err) return res.status(500).json({ "error": err.message });
+        if (row) res.json(row);
+        else res.status(404).json({ message: "ไม่พบครุภัณฑ์หมายเลขนี้" });
+    });
+});
+
+app.get('/api/equipment/history/:assetNumber', authenticateToken, (req, res) => {
+    const { assetNumber } = req.params;
+    const equipmentSql = "SELECT * FROM equipment WHERE assetNumber = ?";
+    db.get(equipmentSql, [assetNumber], (err, equipment) => {
+        if (err) return res.status(500).json({ "error": err.message });
+        if (!equipment) return res.status(404).json({ message: "ไม่พบครุภัณฑ์หมายเลขนี้" });
+        const historySql = `
+            SELECT rr.*, u.fullName as requestUser FROM repair_requests rr 
+            JOIN users u ON rr.userId = u.id
+            WHERE rr.equipmentId = ? ORDER BY rr.requestDate DESC`;
+        db.all(historySql, [equipment.id], (err, history) => {
+            if (err) return res.status(500).json({ "error": err.message });
+            res.json({ details: equipment, history: history });
+        });
+    });
+});
+
+
+app.get('/api/equipment', authenticateToken, (req, res) => {
+    const page = parseInt(req.query.page);
+    const limit = parseInt(req.query.limit);
     const searchTerm = req.query.search || '';
 
+    if (!page || !limit) {
+        const allDataSql = "SELECT * FROM equipment ORDER BY id DESC";
+        db.all(allDataSql, [], (err, rows) => {
+            if (err) return res.status(500).json({ "error": err.message });
+            res.json({ data: rows, pagination: { totalPages: 1 } });
+        });
+        return;
+    }
+
+    const offset = (page - 1) * limit;
     let dataSql = "SELECT * FROM equipment";
     let countSql = "SELECT COUNT(*) as total FROM equipment";
     const params = [];
@@ -244,3 +333,4 @@ app.get(/.*/, (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+

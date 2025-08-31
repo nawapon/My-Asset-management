@@ -84,3 +84,13 @@
     }
 }
 
+/* ... All previous styles ... */
+
+/* Styles for Details Modal */
+.details-dl dt {
+    font-weight: 700;
+    color: #495057;
+}
+.details-dl dd {
+    margin-bottom: .5rem;
+}
