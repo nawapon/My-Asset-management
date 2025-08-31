@@ -40,6 +40,7 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         equipmentId INTEGER,
         userId INTEGER,
+        reporterName TEXT,
         problemDescription TEXT,
         requestDate TEXT,
         status TEXT DEFAULT 'Pending',

@@ -63,6 +63,22 @@
     padding: 2px 4px;
 }
 
+/* Styles for Admin Action Buttons in table */
+.action-cell-admin {
+    display: flex;
+    gap: 5px;
+}
+
+/* Styles for Details Modal */
+.details-dl dt {
+    font-weight: 700;
+    color: #495057;
+}
+.details-dl dd {
+    margin-bottom: .5rem;
+}
+
+
 /* Print-specific styles */
 #print-area { display: none; }
 @media print {
@@ -84,13 +100,3 @@
     }
 }
 
-/* ... All previous styles ... */
-
-/* Styles for Details Modal */
-.details-dl dt {
-    font-weight: 700;
-    color: #495057;
-}
-.details-dl dd {
-    margin-bottom: .5rem;
-}
