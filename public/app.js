@@ -16,6 +16,40 @@ $(document).ready(function() {
         ? `http://${SERVER_IP_FOR_QR_CODE}:3000` 
         : window.location.origin;
 
+    // Lightbox Initializer (for clickable QR codes)
+    // Use a more specific selector for the admin table to avoid conflicts
+    $('#equipmentTableBody').on('click', 'a[data-toggle="lightbox"]', function(event) {
+        event.preventDefault();
+        const $link = $(this);
+        const title = $link.data('title');
+        const qrUrl = $link.find('.qr-code-container').data('qr-url');
+
+        // Create a temporary hidden div to generate the large QR code
+        const $tempDiv = $('<div></div>').hide();
+        $('body').append($tempDiv);
+
+        new QRCode($tempDiv[0], {
+            text: qrUrl,
+            width: 400, // Larger size for lightbox
+            height: 400,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        // Use a short delay to ensure the image is rendered before getting its src
+        setTimeout(() => {
+            const largeQrSrc = $tempDiv.find('img').attr('src');
+            $tempDiv.remove(); // Clean up the temporary div
+            
+            // Manually set href and trigger Ekko Lightbox
+            $link.attr('href', largeQrSrc); 
+            $(this).ekkoLightbox({
+                alwaysShowClose: true,
+                title: title
+            });
+        }, 150);
+    });
+
+
     // Helper function for displaying messages
     function displayMessage(element, message, isSuccess) {
         const alertClass = isSuccess ? 'alert alert-success' : 'alert alert-danger';
@@ -364,7 +398,7 @@ $(document).ready(function() {
                         const row = `
                             <tr>
                                 <td>
-                                    <a href="#" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
+                                    <a href="#" id="qr-link-${item.id}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
                                         <div id="qr-container-${item.id}" class="qr-code-container" data-qr-url="${qrUrl}"></div>
                                     </a>
                                 </td>
@@ -379,43 +413,34 @@ $(document).ready(function() {
                                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
-                        const $row = $(row);
-                        $equipmentTableBody.append($row);
-                        
-                        const qrContainer = $row.find('.qr-code-container')[0];
-                        if (qrContainer && typeof QRCode !== 'undefined') {
+                        $equipmentTableBody.append(row);
+                    });
+
+                    result.data.forEach(item => {
+                        const qrContainer = document.getElementById(`qr-container-${item.id}`);
+                        const qrLink = document.getElementById(`qr-link-${item.id}`);
+                        if (qrContainer && qrLink) {
+                            const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
                             new QRCode(qrContainer, { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
+
+                            const tempDiv = document.createElement('div');
+                            tempDiv.style.display = 'none';
+                            document.body.appendChild(tempDiv);
+                            new QRCode(tempDiv, { text: qrUrl, width: 400, height: 400, correctLevel: QRCode.CorrectLevel.H });
+                            
+                            setTimeout(() => {
+                                const img = tempDiv.querySelector('img');
+                                if (img) {
+                                    qrLink.href = img.src;
+                                }
+                                document.body.removeChild(tempDiv);
+                            }, 150);
                         }
                     });
                     renderPagination(result.pagination);
                 }
             });
         };
-
-        $equipmentTableBody.on('click', 'a[data-toggle="lightbox"]', function(e) {
-            e.preventDefault();
-            const $link = $(this);
-            const title = $link.data('title');
-            const qrUrl = $link.find('.qr-code-container').data('qr-url');
-            const $tempDiv = $('<div></div>').hide();
-            $('body').append($tempDiv);
-            new QRCode($tempDiv[0], {
-                text: qrUrl,
-                width: 400,
-                height: 400,
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            setTimeout(() => {
-                const largeQrSrc = $tempDiv.find('img').attr('src');
-                $tempDiv.remove(); 
-                $(this).ekkoLightbox({
-                    alwaysShowClose: true,
-                    remote: largeQrSrc,
-                    type: 'image',
-                    title: title
-                });
-            }, 100);
-        });
         
         const renderPagination = (pagination) => {
             const { page, totalPages } = pagination;
@@ -639,7 +664,12 @@ $(document).ready(function() {
                 const label = $(`<div class="qr-label"><div class="qr-code-print"></div><div class="qr-text-print">${item.assetNumber}</div></div>`);
                 printArea.append(label);
                 const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
-                new QRCode(label.find('.qr-code-print')[0], { text: qrUrl, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.H });
+                new QRCode(label.find('.qr-code-print')[0], { 
+                    text: qrUrl, 
+                    width: 160, 
+                    height: 160, 
+                    correctLevel: QRCode.CorrectLevel.H 
+                });
             });
             setTimeout(() => { window.print(); }, 500);
         });

@@ -20,7 +20,12 @@
 /* Table styles */
 .table td { vertical-align: middle !important; }
 
-.qr-code-container { width: 45px; height: 45px; margin: 0 auto; cursor: pointer; }
+.qr-code-container { 
+    width: 45px; 
+    height: 45px; 
+    margin: 0 auto;
+    cursor: pointer; /* Makes it look clickable */
+}
 .qr-code-container img {
     width: 100% !important;
     height: 100% !important;
@@ -90,31 +95,40 @@
     border: 1px solid #dee2e6;
 }
 
-/* ★★★ NEW: Style for making QR Code Lightbox larger ★★★ */
+/* Style for making QR Code Lightbox larger */
 .ekko-lightbox .modal-dialog {
-    max-width: 450px; /* Adjust this value as needed */
+    max-width: 450px;
 }
-/* ★★★ END OF NEW STYLE ★★★ */
 
-
-/* Print-specific styles */
+/* Print-specific styles (UPDATED) */
 #print-area { display: none; }
 @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
     #print-area {
         position: absolute; left: 0; top: 0; width: 100%;
-        display: flex; flex-wrap: wrap; gap: 10px; padding: 10px;
+        display: flex; flex-wrap: wrap; 
+        gap: 25px; /* Increased gap */
+        padding: 15px;
     }
     .qr-label {
-        width: 250px; height: 250px; border: 1px solid #000; padding: 5px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        width: 180px;  /* Increased size */
+        height: 220px; /* Increased size */
+        border: 1px solid #000; padding: 10px;
+        display: flex; flex-direction: column; 
+        align-items: center; justify-content: center;
         page-break-inside: avoid;
     }
-    .qr-code-print { width: 80px; height: 80px; }
+    .qr-code-print { 
+        width: 160px; /* Increased size */
+        height: 160px; /* Increased size */
+    }
     .qr-text-print {
-        margin-top: 5px; font-size: 20px; font-weight: bold;
-        text-align: center; word-break: break-all;
+        margin-top: 8px; 
+        font-size: 20px; /* Slightly larger font */
+        font-weight: bold;
+        text-align: center; 
+        word-break: break-all;
     }
 }
 
