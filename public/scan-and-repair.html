@@ -106,7 +106,6 @@ $(document).ready(function() {
         return;
     }
 
-    // Fetch equipment details
     $.ajax({
         url: `/api/public/equipment/${assetNumber}`,
         method: 'GET',
@@ -127,7 +126,6 @@ $(document).ready(function() {
         }
     });
 
-    // Handle form submission
     $('#publicRepairForm').on('submit', function(e) {
         e.preventDefault();
         const reporterName = $('#reporterName').val();
@@ -153,3 +151,4 @@ $(document).ready(function() {
 </script>
 </body>
 </html>
+

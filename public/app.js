@@ -1,16 +1,20 @@
 // public/app.js (Complete Version with All Features)
 
 $(document).ready(function() {
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // ★  สำคัญ! สำหรับการทดสอบสแกน QR Code ด้วยมือถือ       ★
+    // ★  ให้ใส่ Local IP Address ของคอมพิวเตอร์คุณตรงนี้      ★
+    // ★  ตัวอย่าง: const SERVER_IP_FOR_QR_CODE = '192.168.1.34'; ★
+    // ★  ถ้าไม่ใส่ เว็บจะใช้ localhost ตามปกติ                  ★
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    const SERVER_IP_FOR_QR_CODE = '10.67.3.116';
+
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
-
-    // Lightbox Initializer (for clickable QR codes)
-    $(document).on('click', '[data-toggle="lightbox"]', function(event) {
-        event.preventDefault();
-        $(this).ekkoLightbox({
-            alwaysShowClose: true
-        });
-    });
+    
+    const baseUrl = SERVER_IP_FOR_QR_CODE 
+        ? `http://${SERVER_IP_FOR_QR_CODE}:3000` 
+        : window.location.origin;
 
     // Helper function for displaying messages
     function displayMessage(element, message, isSuccess) {
@@ -197,14 +201,14 @@ $(document).ready(function() {
                         $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                     }
                     const $qrContainer = $('#detailsModalQrCode').empty();
-                    const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${assetNumber}`;
+                    const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
                     new QRCode($qrContainer[0], { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
                     $('#detailsModal').modal('show');
                 }
             });
         });
 
-        $('#detailsModal').on('hidden.bs.modal', function () {
+        $('.modal').on('hidden.bs.modal', function () {
             if (modalTrigger) {
                 $(modalTrigger).focus();
                 modalTrigger = null;
@@ -356,11 +360,12 @@ $(document).ready(function() {
                     window.equipmentData = result.data;
                     $equipmentTableBody.empty();
                     result.data.forEach(item => {
+                        const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
                         const row = `
                             <tr>
                                 <td>
-                                    <a href="#" id="qr-link-${item.id}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}" data-gallery="equipment-qrcodes">
-                                        <div id="qr-container-${item.id}" class="qr-code-container"></div>
+                                    <a href="#" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
+                                        <div id="qr-container-${item.id}" class="qr-code-container" data-qr-url="${qrUrl}"></div>
                                     </a>
                                 </td>
                                 <td>${item.assetNumber}</td>
@@ -374,27 +379,43 @@ $(document).ready(function() {
                                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
-                        $equipmentTableBody.append(row);
-                    });
-
-                    result.data.forEach(item => {
-                        const qrContainer = document.getElementById(`qr-container-${item.id}`);
-                        if (qrContainer) {
-                            const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${item.assetNumber}`;
+                        const $row = $(row);
+                        $equipmentTableBody.append($row);
+                        
+                        const qrContainer = $row.find('.qr-code-container')[0];
+                        if (qrContainer && typeof QRCode !== 'undefined') {
                             new QRCode(qrContainer, { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
-                            setTimeout(() => {
-                                const img = qrContainer.querySelector('img');
-                                const link = document.getElementById(`qr-link-${item.id}`);
-                                if (img && link) {
-                                    link.href = img.src;
-                                }
-                            }, 100);
                         }
                     });
                     renderPagination(result.pagination);
                 }
             });
         };
+
+        $equipmentTableBody.on('click', 'a[data-toggle="lightbox"]', function(e) {
+            e.preventDefault();
+            const $link = $(this);
+            const title = $link.data('title');
+            const qrUrl = $link.find('.qr-code-container').data('qr-url');
+            const $tempDiv = $('<div></div>').hide();
+            $('body').append($tempDiv);
+            new QRCode($tempDiv[0], {
+                text: qrUrl,
+                width: 400,
+                height: 400,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            setTimeout(() => {
+                const largeQrSrc = $tempDiv.find('img').attr('src');
+                $tempDiv.remove(); 
+                $(this).ekkoLightbox({
+                    alwaysShowClose: true,
+                    remote: largeQrSrc,
+                    type: 'image',
+                    title: title
+                });
+            }, 100);
+        });
         
         const renderPagination = (pagination) => {
             const { page, totalPages } = pagination;
@@ -448,7 +469,7 @@ $(document).ready(function() {
                             $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                         }
                         const $qrContainer = $('#detailsModalQrCode').empty();
-                        const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${assetNumber}`;
+                        const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
                         new QRCode($qrContainer[0], { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
                         $('#detailsModal').modal('show');
                     }
@@ -608,26 +629,19 @@ $(document).ready(function() {
         $('#exportBtn').on('click', function() { window.location.href = `/api/equipment/export?token=${token}`; });
         
         $('#printQrBtn').on('click', function() {
-            $.ajax({
-                url: `/api/equipment`,
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` },
-                success: function(allEquipment) {
-                    const printArea = $('#print-area');
-                    if (!allEquipment.data || allEquipment.data.length === 0) {
-                        alert('ไม่มีข้อมูลครุภัณฑ์สำหรับพิมพ์');
-                        return;
-                    }
-                    printArea.empty();
-                    allEquipment.data.forEach(item => {
-                        const label = $(`<div class="qr-label"><div class="qr-code-print"></div><div class="qr-text-print">${item.assetNumber}</div></div>`);
-                        printArea.append(label);
-                        const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${item.assetNumber}`;
-                        new QRCode(label.find('.qr-code-print')[0], { text: qrUrl, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.H });
-                    });
-                    setTimeout(() => { window.print(); }, 500);
-                }
+            const printArea = $('#print-area');
+            if (!window.equipmentData || window.equipmentData.length === 0) {
+                alert('ไม่มีข้อมูลครุภัณฑ์สำหรับพิมพ์ในหน้านี้');
+                return;
+            }
+            printArea.empty();
+            window.equipmentData.forEach(item => {
+                const label = $(`<div class="qr-label"><div class="qr-code-print"></div><div class="qr-text-print">${item.assetNumber}</div></div>`);
+                printArea.append(label);
+                const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
+                new QRCode(label.find('.qr-code-print')[0], { text: qrUrl, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.H });
             });
+            setTimeout(() => { window.print(); }, 500);
         });
 
         // Initial Load

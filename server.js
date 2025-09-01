@@ -1,4 +1,4 @@
-// server.js (Final Complete Version)
+// server.js (Final Complete Version with Public Scan API)
 
 const express = require('express');
 const cors = require('cors');
@@ -16,7 +16,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// สร้างโฟลเดอร์ tmp/csv หากยังไม่มี
 const uploadDir = 'tmp/csv';
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -73,7 +72,6 @@ app.post('/api/public/repairs', (req, res) => {
     });
 });
 // =========================================================
-
 
 // ========== AUTHENTICATED API ROUTES ==========
 
