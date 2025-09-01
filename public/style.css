@@ -20,7 +20,7 @@
 /* Table styles */
 .table td { vertical-align: middle !important; }
 
-.qr-code-container { width: 45px; height: 45px; margin: 0 auto; }
+.qr-code-container { width: 55px; height: 55px; margin: 0 auto; cursor: pointer; }
 .qr-code-container img {
     width: 100% !important;
     height: 100% !important;
@@ -78,6 +78,17 @@
     margin-bottom: .5rem;
 }
 
+/* Styles for Large QR Code in Modal */
+.qr-code-modal-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 1rem;
+}
+.qr-code-modal-container img {
+    padding: 5px;
+    border: 1px solid #dee2e6;
+}
 
 /* Print-specific styles */
 #print-area { display: none; }

@@ -4,6 +4,14 @@ $(document).ready(function() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
 
+    // Lightbox Initializer (for clickable QR codes)
+    $(document).on('click', '[data-toggle="lightbox"]', function(event) {
+        event.preventDefault();
+        $(this).ekkoLightbox({
+            alwaysShowClose: true
+        });
+    });
+
     // Helper function for displaying messages
     function displayMessage(element, message, isSuccess) {
         const alertClass = isSuccess ? 'alert alert-success' : 'alert alert-danger';
@@ -82,7 +90,6 @@ $(document).ready(function() {
             window.location.href = '/index.html';
         });
 
-        // Sidebar Navigation
         $('.nav-sidebar .nav-link').on('click', function(e) {
             e.preventDefault();
             $('.nav-sidebar .nav-link').removeClass('active');
@@ -98,6 +105,7 @@ $(document).ready(function() {
         let userCurrentSearchTerm = '';
         const $userEquipmentTableBody = $('#userEquipmentTableBody');
         const $userResetSearchBtn = $('#userResetSearchBtn');
+        let modalTrigger = null;
 
         $('#userSearchForm').on('submit', function(e) {
             e.preventDefault();
@@ -164,7 +172,8 @@ $(document).ready(function() {
             if (!$(this).parent().hasClass('disabled')) fetchUserEquipment($(this).data('page'));
         });
 
-        $userEquipmentTableBody.on('click', '.details-btn', function() {
+        $userEquipmentTableBody.on('click', '.details-btn', function(e) {
+            modalTrigger = e.currentTarget;
             const assetNumber = $(this).data('assetnumber');
             $.ajax({
                 url: `/api/equipment/history/${assetNumber}`,
@@ -187,9 +196,19 @@ $(document).ready(function() {
                     } else {
                         $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                     }
+                    const $qrContainer = $('#detailsModalQrCode').empty();
+                    const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${assetNumber}`;
+                    new QRCode($qrContainer[0], { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
                     $('#detailsModal').modal('show');
                 }
             });
+        });
+
+        $('#detailsModal').on('hidden.bs.modal', function () {
+            if (modalTrigger) {
+                $(modalTrigger).focus();
+                modalTrigger = null;
+            }
         });
 
         const $myRepairsTableBody = $('#myRepairsTableBody');
@@ -311,6 +330,7 @@ $(document).ready(function() {
         const $equipmentTableBody = $('#equipmentTableBody');
         const $equipmentModal = $('#equipmentModal');
         const $resetSearchBtn = $('#resetSearchBtn');
+        let modalTrigger = null; 
 
         $('#searchForm').on('submit', function(e) {
             e.preventDefault();
@@ -338,7 +358,11 @@ $(document).ready(function() {
                     result.data.forEach(item => {
                         const row = `
                             <tr>
-                                <td><div id="qr-container-${item.id}" class="qr-code-container"></div></td>
+                                <td>
+                                    <a href="#" id="qr-link-${item.id}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}" data-gallery="equipment-qrcodes">
+                                        <div id="qr-container-${item.id}" class="qr-code-container"></div>
+                                    </a>
+                                </td>
                                 <td>${item.assetNumber}</td>
                                 <td>${item.name}</td>
                                 <td>${item.type || ''}</td>
@@ -351,9 +375,20 @@ $(document).ready(function() {
                                 </td>
                             </tr>`;
                         $equipmentTableBody.append(row);
-                        if (typeof QRCode !== 'undefined') {
+                    });
+
+                    result.data.forEach(item => {
+                        const qrContainer = document.getElementById(`qr-container-${item.id}`);
+                        if (qrContainer) {
                             const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${item.assetNumber}`;
-                            new QRCode(document.getElementById(`qr-container-${item.id}`), { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
+                            new QRCode(qrContainer, { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
+                            setTimeout(() => {
+                                const img = qrContainer.querySelector('img');
+                                const link = document.getElementById(`qr-link-${item.id}`);
+                                if (img && link) {
+                                    link.href = img.src;
+                                }
+                            }, 100);
                         }
                     });
                     renderPagination(result.pagination);
@@ -386,8 +421,9 @@ $(document).ready(function() {
             if (!$(this).parent().hasClass('disabled')) fetchEquipment($(this).data('page'));
         });
         
-        $equipmentTableBody.on('click', 'button', function() {
+        $equipmentTableBody.on('click', 'button', function(e) {
             const $btn = $(this);
+            modalTrigger = e.currentTarget;
             if ($btn.hasClass('details-btn')) {
                 const assetNumber = $(this).data('assetnumber');
                 $.ajax({
@@ -411,6 +447,9 @@ $(document).ready(function() {
                         } else {
                             $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                         }
+                        const $qrContainer = $('#detailsModalQrCode').empty();
+                        const qrUrl = `${window.location.origin}/scan-and-repair.html?asset=${assetNumber}`;
+                        new QRCode($qrContainer[0], { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
                         $('#detailsModal').modal('show');
                     }
                 });
@@ -443,18 +482,25 @@ $(document).ready(function() {
             }
         });
 
-        $('#addEquipmentBtn').on('click', () => {
+        $('#addEquipmentBtn').on('click', (e) => {
+            modalTrigger = e.currentTarget;
             const form = $('#equipmentForm')[0];
             if (form) {
                 form.reset();
+                $('#equipmentId').val('');
+                $('#modalTitle').text('เพิ่มครุภัณฑ์ใหม่');
+                $equipmentModal.modal('show');
             } else {
                 console.error("Could not find form with ID 'equipmentForm'.");
                 alert("เกิดข้อผิดพลาด: ไม่พบฟอร์มสำหรับเพิ่มข้อมูล!");
-                return;
             }
-            $('#equipmentId').val('');
-            $('#modalTitle').text('เพิ่มครุภัณฑ์ใหม่');
-            $equipmentModal.modal('show');
+        });
+        
+        $('.modal').on('hidden.bs.modal', function () {
+            if (modalTrigger) {
+                $(modalTrigger).focus();
+                modalTrigger = null;
+            }
         });
 
         $('#equipmentForm').on('submit', function(e) {
