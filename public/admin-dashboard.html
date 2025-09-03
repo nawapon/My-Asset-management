@@ -60,7 +60,7 @@
                     <button id="addEquipmentBtn" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> เพิ่มครุภัณฑ์</button>
                 </div>
               <table id="equipmentTable" class="table table-bordered table-hover">
-                <thead><tr><th style="width: 90px;">QR Code</th><th>เลขครุภัณฑ์</th><th>ชื่ออุปกรณ์</th><th>ประเภท</th><th>สถานที่</th><th>สถานะ</th><th style="width: 150px;">จัดการ</th></tr></thead>
+                <thead><tr><th style="width: 50px;">QR Code</th><th>เลขครุภัณฑ์</th><th>ชื่ออุปกรณ์</th><th>ประเภท</th><th>สถานที่</th><th>สถานะ</th><th style="width: 150px;">จัดการ</th></tr></thead>
                 <tbody id="equipmentTableBody"></tbody>
               </table>
             </div>
@@ -139,6 +139,8 @@
                         <tbody id="detailsHistoryTableBody"></tbody>
                     </table>
                 </div>
+                <hr>
+                <div id="detailsModalQrCode" class="qr-code-modal-container" ></div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button></div>
         </div>

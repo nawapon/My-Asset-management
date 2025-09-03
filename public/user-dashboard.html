@@ -26,8 +26,18 @@
     <div class="sidebar">
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item"><a href="#" class="nav-link active" data-target="#equipment-view"><i class="nav-icon fas fa-database"></i><p>ข้อมูลครุภัณฑ์</p></a></li>
-          <li class="nav-item"><a href="#" class="nav-link" data-target="#repair-view"><i class="nav-icon fas fa-tools"></i><p>แจ้งซ่อม / ประวัติ</p></a></li>
+          <li class="nav-item">
+            <a href="#" class="nav-link active" data-target="#equipment-view">
+              <i class="nav-icon fas fa-database"></i>
+              <p>ข้อมูลครุภัณฑ์</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-target="#repair-view">
+              <i class="nav-icon fas fa-tools"></i>
+              <p>แจ้งซ่อม / ประวัติ</p>
+            </a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -55,11 +65,21 @@
             </div>
             <div class="card-body table-responsive p-0" style="height: 550px;">
               <table id="userEquipmentTable" class="table table-head-fixed table-hover text-nowrap">
-                <thead><tr><th>เลขครุภัณฑ์</th><th>ชื่ออุปกรณ์</th><th>สถานที่</th><th>สถานะ</th><th style="width: 120px;"></th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>เลขครุภัณฑ์</th>
+                    <th>ชื่ออุปกรณ์</th>
+                    <th>สถานที่</th>
+                    <th>สถานะ</th>
+                    <th style="width: 120px;"></th>
+                  </tr>
+                </thead>
                 <tbody id="userEquipmentTableBody"></tbody>
               </table>
             </div>
-            <div class="card-footer clearfix"><div id="userPaginationControls"></div></div>
+            <div class="card-footer clearfix">
+              <div id="userPaginationControls"></div>
+            </div>
           </div>
         </div>
 
@@ -70,9 +90,26 @@
                         <div class="card-header"><h3 class="card-title"><i class="fas fa-edit"></i> แจ้งซ่อมครุภัณฑ์</h3></div>
                         <form id="newRepairRequestForm">
                             <div class="card-body">
-                                <div class="form-group"><label for="assetNumber">เลขครุภัณฑ์</label><input type="text" class="form-control" id="assetNumber" placeholder="พิมพ์เลขครุภัณฑ์เพื่อแจ้งซ่อม..." required></div>
-                                <div id="equipmentDetails" class="callout callout-info" style="display: none;"><h5 id="equipmentName">ชื่ออุปกรณ์: -</h5><p class="mb-0" id="equipmentLocation">สถานที่: -</p></div>
-                                <div class="form-group"><label for="problemDescription">รายละเอียดปัญหา</label><textarea id="problemDescription" class="form-control" rows="4" placeholder="กรุณาอธิบายอาการที่พบ..." required></textarea></div>
+                                <div class="form-group">
+                                    <label for="assetNumber">เลขครุภัณฑ์</label>
+                                    <input type="text" class="form-control" id="assetNumber" placeholder="พิมพ์เลขครุภัณฑ์เพื่อแจ้งซ่อม..." required>
+                                </div>
+                                <div id="equipmentDetails" class="callout callout-info" style="display: none;">
+                                    <h5 id="equipmentName">ชื่ออุปกรณ์: -</h5>
+                                    <p class="mb-0" id="equipmentLocation">สถานที่: -</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reporterLocation">สถานที่ / ที่ตั้ง ของผู้แจ้ง</label>
+                                    <input type="text" class="form-control" id="reporterLocation" placeholder="เช่น อาคาร A ชั้น 2 ห้อง 204" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reporterContact">เบอร์ติดต่อ</label>
+                                    <input type="text" class="form-control" id="reporterContact" placeholder="เบอร์โทรศัพท์มือถือ หรือเบอร์ภายใน" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="problemDescription">รายละเอียดปัญหา</label>
+                                    <textarea id="problemDescription" class="form-control" rows="4" placeholder="กรุณาอธิบายอาการที่พบ..." required></textarea>
+                                </div>
                                 <div id="formMessage" class="message mt-3"></div>
                             </div>
                             <div class="card-footer"><button type="submit" class="btn btn-primary">ส่งเรื่องแจ้งซ่อม</button></div>

@@ -17,12 +17,11 @@ $(document).ready(function() {
         : window.location.origin;
 
     // Lightbox Initializer (for clickable QR codes)
-    // Use a more specific selector for the admin table to avoid conflicts
-    $('#equipmentTableBody').on('click', 'a[data-toggle="lightbox"]', function(event) {
+    $(document).on('click', '[data-toggle="lightbox"]', function(event) {
         event.preventDefault();
         const $link = $(this);
         const title = $link.data('title');
-        const qrUrl = $link.find('.qr-code-container').data('qr-url');
+        const qrUrl = $link.find('.qr-code-container').data('qr-url') || $link.data('qr-url');
 
         // Create a temporary hidden div to generate the large QR code
         const $tempDiv = $('<div></div>').hide();
@@ -48,7 +47,6 @@ $(document).ready(function() {
             });
         }, 150);
     });
-
 
     // Helper function for displaying messages
     function displayMessage(element, message, isSuccess) {
@@ -267,11 +265,13 @@ $(document).ready(function() {
             e.preventDefault();
             const assetNumber = $('#assetNumber').val();
             const problemDescription = $('#problemDescription').val();
+            const reporterLocation = $('#reporterLocation').val();
+            const reporterContact = $('#reporterContact').val();
             $.ajax({
                 url: '/api/repairs', method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 contentType: 'application/json',
-                data: JSON.stringify({ assetNumber, problemDescription }),
+                data: JSON.stringify({ assetNumber, problemDescription, reporterLocation, reporterContact }),
                 success: function() {
                     displayMessage($('#formMessage'), 'แจ้งซ่อมสำเร็จ!', true);
                     $('#newRepairRequestForm')[0].reset();
@@ -385,7 +385,7 @@ $(document).ready(function() {
         });
         
         const fetchEquipment = (page = 1) => {
-            const limit = 5;
+            const limit = 10;
             const url = `/api/equipment?page=${page}&limit=${limit}&search=${encodeURIComponent(currentSearchTerm)}`;
             $.ajax({
                 url: url, method: 'GET',

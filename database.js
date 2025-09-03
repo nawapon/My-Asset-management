@@ -41,6 +41,8 @@ db.serialize(() => {
         equipmentId INTEGER,
         userId INTEGER,
         reporterName TEXT,
+        reporterLocation TEXT,
+        reporterContact INTEGER,
         problemDescription TEXT,
         requestDate TEXT,
         status TEXT DEFAULT 'Pending',
