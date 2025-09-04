@@ -21,7 +21,7 @@ $(document).ready(function() {
         event.preventDefault();
         const $link = $(this);
         const title = $link.data('title');
-        const qrUrl = $link.find('.qr-code-container').data('qr-url') || $link.data('qr-url');
+        const qrUrl = $link.find('.qr-code-container').data('qr-url');
 
         // Create a temporary hidden div to generate the large QR code
         const $tempDiv = $('<div></div>').hide();
@@ -48,11 +48,45 @@ $(document).ready(function() {
         }, 150);
     });
 
+
     // Helper function for displaying messages
     function displayMessage(element, message, isSuccess) {
         const alertClass = isSuccess ? 'alert alert-success' : 'alert alert-danger';
         element.text(message).removeClass('alert-success alert-danger').addClass(alertClass).show();
         setTimeout(() => element.hide().text(''), 4000);
+    }
+
+    // Helper function for duration calculation
+    function formatDuration(start, end) {
+        if (!start || !end) return '-';
+        const diff = new Date(end) - new Date(start);
+        if (diff < 0) return '-';
+
+        let seconds = Math.floor(diff / 1000);
+        let minutes = Math.floor(seconds / 60);
+        let hours = Math.floor(minutes / 60);
+        let days = Math.floor(hours / 24);
+
+        hours %= 24;
+        minutes %= 60;
+        
+        let result = '';
+        if (days > 0) result += `${days} วัน `;
+        if (hours > 0) result += `${hours} ชม. `;
+        if (minutes > 0) result += `${minutes} นาที`;
+
+        return result.trim() || 'ทันที';
+    }
+    
+    function formatDateTime(isoString) {
+        if (!isoString) return '-';
+        try {
+            const date = new Date(isoString);
+            const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+            return date.toLocaleDateString('th-TH', options);
+        } catch (e) {
+            return '-';
+        }
     }
 
     // --- Login Page Logic ---
@@ -121,18 +155,15 @@ $(document).ready(function() {
         }
         $('#welcomeMessage').text(`ยินดีต้อนรับ, ${user.fullName || user.username}`);
         $('#logoutButton').on('click', () => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            localStorage.clear();
             window.location.href = '/index.html';
         });
-
         $('.nav-sidebar .nav-link').on('click', function(e) {
             e.preventDefault();
             $('.nav-sidebar .nav-link').removeClass('active');
             $(this).addClass('active');
-            const targetId = $(this).data('target');
             $('.content-section').removeClass('active');
-            $(targetId).addClass('active');
+            $($(this).data('target')).addClass('active');
         });
     }
     
@@ -227,10 +258,17 @@ $(document).ready(function() {
                     const $historyBody = $('#detailsHistoryTableBody').empty();
                     if (history.length > 0) {
                         history.forEach(item => {
-                            $historyBody.append(`<tr><td>${new Date(item.requestDate).toLocaleDateString('th-TH')}</td><td>${item.requestUser}</td><td>${item.problemDescription}</td><td><span class="badge badge-info">${item.status}</span></td></tr>`);
+                            $historyBody.append(`<tr>
+                                <td>${formatDateTime(item.requestDate)}</td>
+                                <td>${item.requestUser}</td>
+                                <td>${item.problemDescription}</td>
+                                <td>${formatDateTime(item.acceptedDate)}</td>
+                                <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>
+                                <td><span class="badge badge-info">${item.status}</span></td>
+                            </tr>`);
                         });
                     } else {
-                        $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
+                        $historyBody.append('<tr><td colspan="6" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                     }
                     const $qrContainer = $('#detailsModalQrCode').empty();
                     const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
@@ -324,22 +362,28 @@ $(document).ready(function() {
                     $allRepairsTableBody.empty();
                     repairs.forEach(r => {
                         const statusBadge = {"Pending": "badge-warning", "In Progress": "badge-primary", "Completed": "badge-success"};
+                        const contactInfo = `${r.reporterLocation || ''} (${r.reporterContact || '-'})`;
                         const row = `<tr>
                             <td>${r.assetNumber}</td>
                             <td>${r.requestUser}</td>
+                            <td>${contactInfo}</td>
                             <td>${r.problemDescription}</td>
-                            <td>${new Date(r.requestDate).toLocaleDateString('th-TH')}</td>
+                            <td>${formatDateTime(r.requestDate)}</td>
+                            <td>${formatDuration(r.requestDate, r.acceptedDate)}</td>
+                            <td>${formatDuration(r.acceptedDate, r.completedDate)}</td>
                             <td><span class="badge ${statusBadge[r.status] || 'badge-secondary'}">${r.status}</span></td>
                             <td class="d-flex align-items-center">
                                 <select class="form-control form-control-sm status-selector mr-2" data-id="${r.id}">
-                                    <option value="Pending" ${r.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="In Progress" ${r.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="Completed" ${r.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                                    <option value="Pending">รอรับเรื่อง</option>
+                                    <option value="In Progress">กำลังดำเนินการ</option>
+                                    <option value="Completed">ซ่อมสำเร็จ</option>
                                 </select>
                                 <button class="btn btn-info btn-sm update-status-btn" data-id="${r.id}"><i class="fas fa-check"></i></button>
                             </td>
                         </tr>`;
-                        $allRepairsTableBody.append(row);
+                        const $row = $(row);
+                        $row.find('.status-selector').val(r.status);
+                        $allRepairsTableBody.append($row);
                     });
                 }
             });
@@ -363,7 +407,7 @@ $(document).ready(function() {
     }
     
     // --- Admin Dashboard Logic ---
-    if ($('#equipment-view').length && $('#users-view').length) {
+    if ($('body.admin-page').length) {
         let currentSearchTerm = '';
         const $equipmentTableBody = $('#equipmentTableBody');
         const $equipmentModal = $('#equipmentModal');
@@ -398,7 +442,7 @@ $(document).ready(function() {
                         const row = `
                             <tr>
                                 <td>
-                                    <a href="#" id="qr-link-${item.id}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
+                                    <a href="${qrUrl}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
                                         <div id="qr-container-${item.id}" class="qr-code-container" data-qr-url="${qrUrl}"></div>
                                     </a>
                                 </td>
@@ -413,28 +457,11 @@ $(document).ready(function() {
                                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
-                        $equipmentTableBody.append(row);
-                    });
-
-                    result.data.forEach(item => {
-                        const qrContainer = document.getElementById(`qr-container-${item.id}`);
-                        const qrLink = document.getElementById(`qr-link-${item.id}`);
-                        if (qrContainer && qrLink) {
-                            const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
-                            new QRCode(qrContainer, { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
-
-                            const tempDiv = document.createElement('div');
-                            tempDiv.style.display = 'none';
-                            document.body.appendChild(tempDiv);
-                            new QRCode(tempDiv, { text: qrUrl, width: 400, height: 400, correctLevel: QRCode.CorrectLevel.H });
-                            
-                            setTimeout(() => {
-                                const img = tempDiv.querySelector('img');
-                                if (img) {
-                                    qrLink.href = img.src;
-                                }
-                                document.body.removeChild(tempDiv);
-                            }, 150);
+                        const $row = $(row);
+                        $equipmentTableBody.append($row);
+                        
+                        if (typeof QRCode !== 'undefined') {
+                            new QRCode($row.find('.qr-code-container')[0], { text: qrUrl, width: 45, height: 45, correctLevel: QRCode.CorrectLevel.H });
                         }
                     });
                     renderPagination(result.pagination);
@@ -488,10 +515,17 @@ $(document).ready(function() {
                         const $historyBody = $('#detailsHistoryTableBody').empty();
                         if (history.length > 0) {
                             history.forEach(item => {
-                                $historyBody.append(`<tr><td>${new Date(item.requestDate).toLocaleDateString('th-TH')}</td><td>${item.requestUser}</td><td>${item.problemDescription}</td><td><span class="badge badge-info">${item.status}</span></td></tr>`);
+                                $historyBody.append(`<tr>
+                                    <td>${formatDateTime(item.requestDate)}</td>
+                                    <td>${item.requestUser}</td>
+                                    <td>${item.problemDescription}</td>
+                                    <td>${formatDateTime(item.acceptedDate)}</td>
+                                    <td>${formatDateTime(item.completedDate)}</td>
+                                    <td><span class="badge badge-info">${item.status}</span></td>
+                                </tr>`);
                             });
                         } else {
-                            $historyBody.append('<tr><td colspan="4" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
+                            $historyBody.append('<tr><td colspan="6" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                         }
                         const $qrContainer = $('#detailsModalQrCode').empty();
                         const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
@@ -570,6 +604,9 @@ $(document).ready(function() {
         });
         
         const $usersTableBody = $('#usersTableBody');
+        const $userModal = $('#userModal');
+        const $userForm = $('#userForm');
+
         const fetchUsers = () => {
             $.ajax({
                 url: '/api/users', method: 'GET',
@@ -584,21 +621,62 @@ $(document).ready(function() {
                                 <td>${u.username}</td>
                                 <td>
                                     <select class="form-control form-control-sm role-selector" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}>
-                                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>User</option>
-                                        <option value="technician" ${u.role === 'technician' ? 'selected' : ''}>Technician</option>
-                                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                        <option value="user">User</option>
+                                        <option value="technician">Technician</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                 </td>
-                                <td>
+                                <td class="user-action-cell">
                                     <button class="btn btn-info btn-sm update-role-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}>อัปเดต</button>
                                     <button class="btn btn-danger btn-sm delete-user-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
-                        $usersTableBody.append(row);
+                        const $row = $(row);
+                        $row.find('.role-selector').val(u.role);
+                        $usersTableBody.append($row);
                     });
                 }
             });
         };
+
+        $('#addUserBtn').on('click', function(e) {
+            modalTrigger = e.currentTarget;
+            $userForm[0].reset();
+            $('#userModalTitle').text('เพิ่มผู้ใช้งานใหม่');
+            $userModal.modal('show');
+        });
+
+        $userForm.on('submit', function(e) {
+            e.preventDefault();
+            const password = $('#userPassword').val();
+            const confirmPassword = $('#userConfirmPassword').val();
+            if (password !== confirmPassword) {
+                alert('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
+                return;
+            }
+            const userData = {
+                fullName: $('#userFullName').val(),
+                username: $('#userUsername').val(),
+                password: password,
+                role: $('#userRole').val()
+            };
+            $.ajax({
+                url: '/api/users',
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                contentType: 'application/json',
+                data: JSON.stringify(userData),
+                success: function(response) {
+                    $userModal.modal('hide');
+                    alert(response.message);
+                    fetchUsers();
+                },
+                error: function(jqXHR) {
+                    alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถสร้างผู้ใช้ได้'));
+                }
+            });
+        });
+
 
         $usersTableBody.on('click', '.update-role-btn', function() {
             const id = $(this).data('id');
@@ -673,8 +751,78 @@ $(document).ready(function() {
             });
             setTimeout(() => { window.print(); }, 500);
         });
+        
+        // Initial Load (Chart Data)
+        let statusChartInstance = null;
+        let typeBarChartInstance = null;
+        let typePieChartInstance = null;
+
+        const fetchDashboardData = () => {
+            $.ajax({
+                url: '/api/equipment/summary',
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(summary) {
+                    $('#total-assets').text(summary.total || 0);
+                    $('#normal-status').text(summary.byStatus.find(s => s.status === 'Normal')?.count || 0);
+                    $('#repair-status').text(summary.byStatus.find(s => s.status === 'In Repair')?.count || 0);
+                    $('#disposed-status').text(summary.byStatus.find(s => s.status === 'Disposed')?.count || 0);
+
+                    const statusCtx = document.getElementById('statusChart');
+                    if (statusChartInstance) statusChartInstance.destroy();
+                    statusChartInstance = new Chart(statusCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: summary.byStatus.map(s => s.status),
+                            datasets: [{
+                                data: summary.byStatus.map(s => s.count),
+                                backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d', '#17a2b8'],
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+
+                    const typeBarCtx = document.getElementById('typeChart');
+                    if (typeBarChartInstance) typeBarChartInstance.destroy();
+                    typeBarChartInstance = new Chart(typeBarCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: summary.byType.slice(0, 5).map(t => t.type),
+                            datasets: [{
+                                label: 'จำนวน',
+                                data: summary.byType.slice(0, 5).map(t => t.count),
+                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                    
+                    const equipmentTypeCtx = document.getElementById('equipmentTypeChart');
+                    if (typePieChartInstance) typePieChartInstance.destroy();
+                    typePieChartInstance = new Chart(equipmentTypeCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: summary.byType.map(t => t.type),
+                            datasets: [{
+                                data: summary.byType.map(t => t.count),
+                                backgroundColor: [
+                                    '#3c8dbc', '#00c0ef', '#00a65a', '#f39c12', '#f56954', '#d2d6de',
+                                    '#605ca8', '#ff851b', '#01ff70', '#39cccc', '#3d9970', '#001f3f'
+                                ],
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            });
+        };
 
         // Initial Load
+        fetchDashboardData();
         fetchEquipment();
         fetchUsers();
     }

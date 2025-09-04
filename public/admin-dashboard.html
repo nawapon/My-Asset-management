@@ -4,14 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin Panel | จัดการครุภัณฑ์</title>
-
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini admin-page">
 <div class="wrapper">
 
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
@@ -27,8 +26,26 @@
     <div class="sidebar">
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item"><a href="#" class="nav-link active" data-target="#equipment-view"><i class="nav-icon fas fa-desktop"></i><p>จัดการครุภัณฑ์</p></a></li>
-          <li class="nav-item"><a href="#" class="nav-link" data-target="#users-view"><i class="nav-icon fas fa-users-cog"></i><p>จัดการผู้ใช้งาน</p></a></li>
+          <li class="nav-item">
+            <a href="#" class="nav-link active" data-target="#dashboard-view">
+              <i class="nav-icon fas fa-tachometer-alt"></i><p>ผลสรุป</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-target="#equipment-view">
+              <i class="nav-icon fas fa-desktop"></i><p>จัดการครุภัณฑ์</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-target="#users-view">
+              <i class="nav-icon fas fa-users-cog"></i><p>จัดการผู้ใช้งาน</p>
+            </a>
+          </li>
+           <li class="nav-item">
+            <a href="#" class="nav-link" data-target="#type-summary-view">
+              <i class="nav-icon fas fa-chart-pie"></i><p>สรุปข้อมูลตามประเภท</p>
+            </a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -38,7 +55,24 @@
     <section class="content pt-3">
       <div class="container-fluid">
         
-        <div id="equipment-view" class="content-section active">
+        <div id="dashboard-view" class="content-section active">
+          <div class="row">
+            <div class="col-lg-3 col-6"><div class="small-box bg-info"><div class="inner"><h3 id="total-assets">0</h3><p>ครุภัณฑ์ทั้งหมด</p></div><div class="icon"><i class="fas fa-hdd"></i></div></div></div>
+            <div class="col-lg-3 col-6"><div class="small-box bg-success"><div class="inner"><h3 id="normal-status">0</h3><p>สถานะปกติ</p></div><div class="icon"><i class="fas fa-check-circle"></i></div></div></div>
+            <div class="col-lg-3 col-6"><div class="small-box bg-warning"><div class="inner"><h3 id="repair-status">0</h3><p>กำลังซ่อม</p></div><div class="icon"><i class="fas fa-wrench"></i></div></div></div>
+            <div class="col-lg-3 col-6"><div class="small-box bg-danger"><div class="inner"><h3 id="disposed-status">0</h3><p>จำหน่ายแล้ว</p></div><div class="icon"><i class="fas fa-times-circle"></i></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card card-danger"><div class="card-header"><h3 class="card-title">สัดส่วนครุภัณฑ์ตามสถานะ</h3></div><div class="card-body"><canvas id="statusChart"></canvas></div></div>
+            </div>
+            <div class="col-md-6">
+              <div class="card card-success"><div class="card-header"><h3 class="card-title">5 ประเภทครุภัณฑ์ที่มีจำนวนมากที่สุด</h3></div><div class="card-body"><canvas id="typeChart"></canvas></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="equipment-view" class="content-section">
           <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">รายการครุภัณฑ์คอมพิวเตอร์</h3>
@@ -80,12 +114,37 @@
 
         <div id="users-view" class="content-section">
           <div class="card card-primary card-outline">
-            <div class="card-header"><h3 class="card-title">รายการผู้ใช้งาน</h3></div>
-            <div class="card-body">
-              <table id="usersTable" class="table table-bordered table-hover">
-                <thead><tr><th>ชื่อ-นามสกุล</th><th>ชื่อผู้ใช้ (Username)</th><th>บทบาท (Role)</th><th style="width: 150px;">จัดการ</th></tr></thead>
+            <div class="card-header">
+              <h3 class="card-title"><i class="fas fa-users"></i> รายการผู้ใช้งาน</h3>
+              <div class="card-tools">
+                <button id="addUserBtn" class="btn btn-primary btn-sm">
+                  <i class="fas fa-user-plus"></i> เพิ่มผู้ใช้งานใหม่
+                </button>
+              </div>
+            </div>
+            <div class="card-body table-responsive p-0">
+              <table id="usersTable" class="table table-bordered table-hover text-nowrap">
+                <thead>
+                  <tr>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>ชื่อผู้ใช้ (Username)</th>
+                    <th>บทบาท (Role)</th>
+                    <th style="width: 150px;">จัดการ</th>
+                  </tr>
+                </thead>
                 <tbody id="usersTableBody"></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+        
+        <div id="type-summary-view" class="content-section">
+          <div class="card card-info card-outline">
+            <div class="card-header"><h3 class="card-title">สัดส่วนครุภัณฑ์ตามประเภท</h3></div>
+            <div class="card-body">
+              <div class="chart-container" style="position: relative; height:60vh; width:100%">
+                <canvas id="equipmentTypeChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -95,11 +154,10 @@
   </div>
 </div>
 
-<!-- Add/Edit Equipment Modal -->
 <div class="modal fade" id="equipmentModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="modalTitle">เพิ่มครุภัณฑ์ใหม่</h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+            <div class="modal-header"><h5 class="modal-title" id="modalTitle"></h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
             <div class="modal-body">
                 <form id="equipmentForm">
                     <input type="hidden" id="equipmentId">
@@ -115,7 +173,6 @@
     </div>
 </div>
 
-<!-- Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -130,19 +187,54 @@
                   <dt class="col-sm-3">สถานะ:</dt><dd class="col-sm-9" id="detailsAssetStatus"></dd>
                 </dl>
                 <hr>
-                <div id="detailsModalQrCode" class="qr-code-modal-container" ></div>
-                <hr>
                 <h6><i class="fas fa-history"></i> ประวัติการแจ้งซ่อม</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered">
-                        <thead><tr><th>วันที่แจ้ง</th><th>ผู้แจ้ง</th><th>ปัญหา</th><th>สถานะ</th></tr></thead>
+                        <thead>
+                          <tr>
+                            <th>วันที่แจ้ง</th>
+                            <th>ผู้แจ้ง</th>
+                            <th>ปัญหา</th>
+                            <th>วันที่รับงาน</th>
+                            <th>วันที่ซ่อมเสร็จ</th>
+                            <th>สถานะ</th>
+                          </tr>
+                        </thead>
                         <tbody id="detailsHistoryTableBody"></tbody>
                     </table>
                 </div>
                 <hr>
-                <div id="detailsModalQrCode" class="qr-code-modal-container" ></div>
+                <div id="detailsModalQrCode" class="qr-code-modal-container"></div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <div class="form-group"><label for="userFullName">ชื่อ-นามสกุล</label><input type="text" class="form-control" id="userFullName" required></div>
+                    <div class="form-group"><label for="userUsername">ชื่อผู้ใช้ (Username)</label><input type="text" class="form-control" id="userUsername" required></div>
+                    <div class="form-group"><label for="userPassword">รหัสผ่าน</label><input type="password" class="form-control" id="userPassword" placeholder="กรอกเพื่อตั้งรหัสผ่านใหม่"></div>
+                     <div class="form-group"><label for="userConfirmPassword">ยืนยันรหัสผ่าน</label><input type="password" class="form-control" id="userConfirmPassword"></div>
+                    <div class="form-group">
+                        <label for="userRole">บทบาท (Role)</label>
+                        <select id="userRole" class="form-control">
+                            <option value="user">User</option>
+                            <option value="technician">Technician</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button><button type="submit" form="userForm" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button></div>
         </div>
     </div>
 </div>
@@ -154,6 +246,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

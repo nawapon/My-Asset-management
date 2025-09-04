@@ -1,4 +1,4 @@
-// server.js (Final Complete Version)
+// server.js (Final Complete Version with Time Tracking)
 
 const express = require('express');
 const cors = require('cors');
@@ -136,19 +136,36 @@ app.post('/api/repairs', authenticateToken, (req, res) => {
 });
 
 app.put('/api/repairs/:id', authenticateToken, (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'technician') return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    if (req.user.role !== 'admin' && req.user.role !== 'technician') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
     const { status } = req.body;
     const { id } = req.params;
-    db.run(queries.Repairs.UPDATE_STATUS, [status, id], function(err) {
+    const now = new Date().toISOString();
+    let updateQuery = 'UPDATE repair_requests SET status = ?';
+    const queryParams = [status];
+    if (status === 'In Progress') {
+        updateQuery += ', acceptedDate = COALESCE(acceptedDate, ?)';
+        queryParams.push(now);
+    } else if (status === 'Completed') {
+        updateQuery += ', completedDate = ?';
+        queryParams.push(now);
+    }
+    updateQuery += ' WHERE id = ?';
+    queryParams.push(id);
+    db.run(updateQuery, queryParams, function(err) {
         if (err) return res.status(500).json({ message: "อัปเดตสถานะไม่สำเร็จ" });
         if (this.changes === 0) return res.status(404).json({ message: "ไม่พบรายการที่ต้องการอัปเดต" });
         res.json({ message: "อัปเดตสถานะสำเร็จ" });
     });
 });
 
+
 // --- Equipment Routes ---
 app.get('/api/equipment/summary', authenticateToken, (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
     Promise.all([
         new Promise((resolve, reject) => db.get(queries.Equipment.GET_SUMMARY.total, [], (err, row) => err ? reject(err) : resolve(row))),
         new Promise((resolve, reject) => db.all(queries.Equipment.GET_SUMMARY.byStatus, [], (err, rows) => err ? reject(err) : resolve(rows))),
@@ -157,6 +174,7 @@ app.get('/api/equipment/summary', authenticateToken, (req, res) => {
         res.json({ total: totalResult.count, byStatus: statusResult, byType: typeResult });
     }).catch(err => res.status(500).json({ message: "Failed to retrieve summary data.", error: err.message }));
 });
+
 
 app.get('/api/equipment/history/:assetNumber', authenticateToken, (req, res) => {
     const { assetNumber } = req.params;
@@ -284,6 +302,31 @@ app.get('/api/users', authenticateToken, (req, res) => {
     db.all(queries.Users.GET_ALL, [], (err, rows) => {
         if (err) return res.status(500).json({ "error": err.message });
         res.json(rows);
+    });
+});
+
+app.post('/api/users', authenticateToken, (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
+    const { fullName, username, password, role } = req.body;
+    if (!fullName || !username || !password || !role) {
+        return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+    }
+     if (!['user', 'technician', 'admin'].includes(role)) {
+        return res.status(400).json({ message: "บทบาทไม่ถูกต้อง" });
+    }
+    db.get(queries.Auth.GET_BY_USERNAME, [username], (err, user) => {
+        if (err) return res.status(500).json({ message: "เกิดข้อผิดพลาดกับเซิร์ฟเวอร์" });
+        if (user) return res.status(400).json({ message: "ชื่อผู้ใช้นี้มีคนใช้แล้ว" });
+        
+        bcrypt.hash(password, 10, (err, hash) => {
+            if (err) return res.status(500).json({ message: "เกิดข้อผิดพลาดในการเข้ารหัส" });
+            db.run(queries.Auth.INSERT_USER, [fullName, username, hash, role], function(err) {
+                if (err) return res.status(500).json({ message: "ไม่สามารถสร้างผู้ใช้ได้" });
+                res.status(201).json({ message: "สร้างผู้ใช้สำเร็จ!", userId: this.lastID });
+            });
+        });
     });
 });
 

@@ -34,11 +34,7 @@
 
   <div class="content-wrapper">
     <div class="content-header">
-      <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6"><h1 class="m-0">แดชบอร์ดช่างเทคนิค</h1></div>
-        </div>
-      </div>
+      <div class="container-fluid"><div class="row mb-2"><div class="col-sm-6"><h1 class="m-0">แดชบอร์ดช่างเทคนิค</h1></div></div></div>
     </div>
 
     <section class="content">
@@ -66,9 +62,53 @@
   </div>
 </div>
 
+<!-- Tech Repair Management Modal -->
+<div class="modal fade" id="techRepairModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info">
+                <h5 class="modal-title" id="techRepairModalTitle">จัดการงานซ่อม</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="techRepairForm">
+                    <input type="hidden" id="repairId">
+                    <h6><i class="fas fa-info-circle"></i> รายละเอียดการแจ้งซ่อม</h6>
+                    <dl class="row">
+                        <dt class="col-sm-3">เลขครุภัณฑ์:</dt><dd class="col-sm-9" id="modalAssetNumber"></dd>
+                        <dt class="col-sm-3">ผู้แจ้ง:</dt><dd class="col-sm-9" id="modalRequestUser"></dd>
+                        <dt class="col-sm-3">สถานที่/เบอร์ติดต่อ:</dt><dd class="col-sm-9" id="modalContactInfo"></dd>
+                        <dt class="col-sm-3">ปัญหาที่แจ้ง:</dt><dd class="col-sm-9" id="modalProblem"></dd>
+                        <dt class="col-sm-3">วันที่แจ้ง:</dt><dd class="col-sm-9" id="modalRequestDate"></dd>
+                    </dl>
+                    <hr>
+                    <h6><i class="fas fa-edit"></i> บันทึกการแก้ไขและอัปเดตสถานะ</h6>
+                    <div class="form-group">
+                        <label for="solutionNotes">บันทึกการซ่อม</label>
+                        <textarea id="solutionNotes" class="form-control" rows="3" placeholder="อธิบายวิธีการแก้ไขปัญหา..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="modalStatus">อัปเดตสถานะ</label>
+                        <select id="modalStatus" class="form-control">
+                            <option value="Pending">รอรับเรื่อง</option>
+                            <option value="In Progress">กำลังดำเนินการ</option>
+                            <option value="Completed">ซ่อมสำเร็จ</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-default" data-dismiss="modal">ปิด</button>
+                <button type="submit" form="techRepairForm" class="btn btn-info"><i class="fas fa-save"></i> บันทึกการเปลี่ยนแปลง</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
+

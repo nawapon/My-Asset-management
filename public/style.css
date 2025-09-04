@@ -62,17 +62,19 @@
     display: none;
 }
 
-/* Notification Badge */
-.navbar-badge {
-    font-size: 0.6rem;
-    padding: 2px 4px;
-}
-
 /* Styles for Admin Action Buttons in table */
 .action-cell-admin {
     display: flex;
     gap: 5px;
 }
+
+/* Styles for User Management Action Buttons */
+.user-action-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Adds space between dropdown and button */
+}
+
 
 /* Styles for Details Modal */
 .details-dl dt {
@@ -108,7 +110,7 @@
     #print-area {
         position: absolute; left: 0; top: 0; width: 100%;
         display: flex; flex-wrap: wrap; 
-        gap: 25px; /* Increased gap */
+        gap: 25px; /* Increased gap for better spacing */
         padding: 15px;
     }
     .qr-label {
@@ -125,7 +127,7 @@
     }
     .qr-text-print {
         margin-top: 8px; 
-        font-size: 20px; /* Slightly larger font */
+        font-size: 12px; /* Slightly larger font */
         font-weight: bold;
         text-align: center; 
         word-break: break-all;
