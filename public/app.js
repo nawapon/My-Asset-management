@@ -262,8 +262,8 @@ $(document).ready(function() {
                                 <td>${formatDateTime(item.requestDate)}</td>
                                 <td>${item.requestUser}</td>
                                 <td>${item.problemDescription}</td>
-                                <td>${formatDateTime(item.acceptedDate)}</td>
-                                <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>
+                                <td>${formatDateTime(item.acceptedDate)}</td>      
+                                <td>${formatDateTime(item.completedDate)}</td>
                                 <td><span class="badge badge-info">${item.status}</span></td>
                             </tr>`);
                         });
@@ -521,6 +521,7 @@ $(document).ready(function() {
                                     <td>${item.problemDescription}</td>
                                     <td>${formatDateTime(item.acceptedDate)}</td>
                                     <td>${formatDateTime(item.completedDate)}</td>
+                                    <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>  /* สรุปเวลาซ่อม */
                                     <td><span class="badge badge-info">${item.status}</span></td>
                                 </tr>`);
                             });
