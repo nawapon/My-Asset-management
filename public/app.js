@@ -61,20 +61,16 @@ $(document).ready(function() {
         if (!start || !end) return '-';
         const diff = new Date(end) - new Date(start);
         if (diff < 0) return '-';
-
         let seconds = Math.floor(diff / 1000);
         let minutes = Math.floor(seconds / 60);
         let hours = Math.floor(minutes / 60);
         let days = Math.floor(hours / 24);
-
         hours %= 24;
         minutes %= 60;
-        
         let result = '';
         if (days > 0) result += `${days} วัน `;
         if (hours > 0) result += `${hours} ชม. `;
         if (minutes > 0) result += `${minutes} นาที`;
-
         return result.trim() || 'ทันที';
     }
     
@@ -262,7 +258,7 @@ $(document).ready(function() {
                                 <td>${formatDateTime(item.requestDate)}</td>
                                 <td>${item.requestUser}</td>
                                 <td>${item.problemDescription}</td>
-                                <td>${formatDateTime(item.acceptedDate)}</td>      
+                                <td>${formatDateTime(item.acceptedDate)}</td>
                                 <td>${formatDateTime(item.completedDate)}</td>
                                 <td><span class="badge badge-info">${item.status}</span></td>
                             </tr>`);
@@ -353,57 +349,87 @@ $(document).ready(function() {
 
     // --- Tech Dashboard Page Logic ---
     if ($('body.tech-page').length) {
-        const $allRepairsTableBody = $('#allRepairsTableBody');
-        const fetchAllRepairs = () => {
+        const $techRepairModal = $('#techRepairModal');
+        let modalTrigger = null;
+        
+        const fetchAndRenderQueue = () => {
+            const $pendingCol = $('#pending-column').empty();
+            const $inprogressCol = $('#inprogress-column').empty();
+            const $completedCol = $('#completed-column').empty();
+
             $.ajax({
                 url: '/api/repairs', method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
                 success: function(repairs) {
-                    $allRepairsTableBody.empty();
                     repairs.forEach(r => {
-                        const statusBadge = {"Pending": "badge-warning", "In Progress": "badge-primary", "Completed": "badge-success"};
                         const contactInfo = `${r.reporterLocation || ''} (${r.reporterContact || '-'})`;
-                        const row = `<tr>
-                            <td>${r.assetNumber}</td>
-                            <td>${r.requestUser}</td>
-                            <td>${contactInfo}</td>
-                            <td>${r.problemDescription}</td>
-                            <td>${formatDateTime(r.requestDate)}</td>
-                            <td>${formatDuration(r.requestDate, r.acceptedDate)}</td>
-                            <td>${formatDuration(r.acceptedDate, r.completedDate)}</td>
-                            <td><span class="badge ${statusBadge[r.status] || 'badge-secondary'}">${r.status}</span></td>
-                            <td class="d-flex align-items-center">
-                                <select class="form-control form-control-sm status-selector mr-2" data-id="${r.id}">
-                                    <option value="Pending">รอรับเรื่อง</option>
-                                    <option value="In Progress">กำลังดำเนินการ</option>
-                                    <option value="Completed">ซ่อมสำเร็จ</option>
-                                </select>
-                                <button class="btn btn-info btn-sm update-status-btn" data-id="${r.id}"><i class="fas fa-check"></i></button>
-                            </td>
-                        </tr>`;
-                        const $row = $(row);
-                        $row.find('.status-selector').val(r.status);
-                        $allRepairsTableBody.append($row);
+                        const card = `
+                            <div class="kanban-card manage-repair-btn" data-id="${r.id}">
+                                <div class="kanban-card-title">${r.assetNumber}</div>
+                                <div class="kanban-card-meta">
+                                    <span><i class="far fa-user"></i> ${r.requestUser}</span><br>
+                                    <span><i class="far fa-building"></i> ${contactInfo}</span><br>
+                                    <span><i class="far fa-calendar-alt"></i> ${formatDateTime(r.requestDate)}</span>
+                                </div>
+                                <p class="kanban-card-problem">${r.problemDescription}</p>
+                            </div>
+                        `;
+                        if (r.status === 'Pending') $pendingCol.append(card);
+                        else if (r.status === 'In Progress') $inprogressCol.append(card);
+                        else if (r.status === 'Completed') $completedCol.append(card);
                     });
                 }
             });
         };
-        $allRepairsTableBody.on('click', '.update-status-btn', function() {
+
+        $('.content-wrapper').on('click', '.manage-repair-btn', function(e) {
+            modalTrigger = e.currentTarget;
             const repairId = $(this).data('id');
-            const newStatus = $(`.status-selector[data-id="${repairId}"]`).val();
+            $.ajax({
+                url: `/api/repairs/${repairId}`,
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(data) {
+                    $('#repairId').val(data.id);
+                    $('#modalAssetNumber').text(data.assetNumber);
+                    $('#modalRequestUser').text(data.requestUser);
+                    $('#modalContactInfo').text(`${data.reporterLocation || ''} (${data.reporterContact || '-'})`);
+                    $('#modalProblem').text(data.problemDescription);
+                    $('#modalRequestDate').text(formatDateTime(data.requestDate));
+                    $('#solutionNotes').val(data.solutionNotes || '');
+                    $('#modalStatus').val(data.status);
+                    $techRepairModal.modal('show');
+                }
+            });
+        });
+
+        $('#techRepairForm').on('submit', function(e) {
+            e.preventDefault();
+            const repairId = $('#repairId').val();
+            const newStatus = $('#modalStatus').val();
+            const solutionNotes = $('#solutionNotes').val();
             $.ajax({
                 url: `/api/repairs/${repairId}`, method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` },
                 contentType: 'application/json',
-                data: JSON.stringify({ status: newStatus }),
+                data: JSON.stringify({ status: newStatus, solutionNotes: solutionNotes }),
                 success: function() {
-                    alert('อัปเดตสถานะสำเร็จ!');
-                    fetchAllRepairs();
+                    $techRepairModal.modal('hide');
+                    alert('บันทึกการเปลี่ยนแปลงสำเร็จ!');
+                    fetchAndRenderQueue();
                 },
-                error: function() { alert('เกิดข้อผิดพลาดในการอัปเดต'); }
+                error: function() { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล'); }
             });
         });
-        fetchAllRepairs();
+
+        $('.modal').on('hidden.bs.modal', function () {
+            if (modalTrigger) {
+                $(modalTrigger).focus();
+                modalTrigger = null;
+            }
+        });
+        
+        fetchAndRenderQueue();
     }
     
     // --- Admin Dashboard Logic ---
@@ -413,6 +439,99 @@ $(document).ready(function() {
         const $equipmentModal = $('#equipmentModal');
         const $resetSearchBtn = $('#resetSearchBtn');
         let modalTrigger = null; 
+
+        let statusChartInstance = null;
+        let typeBarChartInstance = null;
+        let typePieChartInstance = null;
+        let avgTimeChartInstance = null;
+
+        const fetchDashboardData = () => {
+            $.ajax({
+                url: '/api/equipment/summary',
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(summary) {
+                    $('#total-assets').text(summary.total || 0);
+                    $('#normal-status').text(summary.byStatus.find(s => s.status === 'Normal')?.count || 0);
+                    $('#repair-status').text(summary.byStatus.find(s => s.status === 'In Repair')?.count || 0);
+                    $('#disposed-status').text(summary.byStatus.find(s => s.status === 'Disposed')?.count || 0);
+                    $('#avg-response-time').text(formatDuration(0, (summary.timeSummary.avgResponseSeconds || 0) * 1000));
+                    $('#avg-resolution-time').text(formatDuration(0, (summary.timeSummary.avgResolutionSeconds || 0) * 1000));
+
+                    const statusCtx = document.getElementById('statusChart');
+                    if (statusChartInstance) statusChartInstance.destroy();
+                    statusChartInstance = new Chart(statusCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: summary.byStatus.map(s => s.status),
+                            datasets: [{
+                                data: summary.byStatus.map(s => s.count),
+                                backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d', '#17a2b8'],
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+
+                    const typeBarCtx = document.getElementById('typeChart');
+                    if (typeBarChartInstance) typeBarChartInstance.destroy();
+                    typeBarChartInstance = new Chart(typeBarCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: summary.byType.slice(0, 5).map(t => t.type),
+                            datasets: [{
+                                label: 'จำนวน',
+                                data: summary.byType.slice(0, 5).map(t => t.count),
+                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                    
+                    const equipmentTypeCtx = document.getElementById('equipmentTypeChart');
+                    if (typePieChartInstance) typePieChartInstance.destroy();
+                    typePieChartInstance = new Chart(equipmentTypeCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: summary.byType.map(t => t.type),
+                            datasets: [{
+                                data: summary.byType.map(t => t.count),
+                                backgroundColor: [
+                                    '#3c8dbc', '#00c0ef', '#00a65a', '#f39c12', '#f56954', '#d2d6de',
+                                    '#605ca8', '#ff851b', '#01ff70', '#39cccc', '#3d9970', '#001f3f'
+                                ],
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                    
+                    const avgTimeCtx = document.getElementById('avgTimeChart');
+                    if (avgTimeChartInstance) avgTimeChartInstance.destroy();
+                    avgTimeChartInstance = new Chart(avgTimeCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: summary.timeByType.map(t => t.type),
+                            datasets: [{
+                                label: 'เวลาซ่อมเฉลี่ย (ชั่วโมง)',
+                                data: summary.timeByType.map(t => (t.avgResolutionSeconds / 3600).toFixed(2)),
+                                backgroundColor: 'rgba(110, 68, 191, 0.7)',
+                                borderColor: 'rgba(110, 68, 191, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            scales: { x: { beginAtZero: true, title: { display: true, text: 'ชั่วโมง' } } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+                }
+            });
+        };
 
         $('#searchForm').on('submit', function(e) {
             e.preventDefault();
@@ -442,7 +561,7 @@ $(document).ready(function() {
                         const row = `
                             <tr>
                                 <td>
-                                    <a href="${qrUrl}" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
+                                    <a href="#" data-toggle="lightbox" data-title="QR Code: ${item.assetNumber}">
                                         <div id="qr-container-${item.id}" class="qr-code-container" data-qr-url="${qrUrl}"></div>
                                     </a>
                                 </td>
@@ -521,7 +640,6 @@ $(document).ready(function() {
                                     <td>${item.problemDescription}</td>
                                     <td>${formatDateTime(item.acceptedDate)}</td>
                                     <td>${formatDateTime(item.completedDate)}</td>
-                                    <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>  /* สรุปเวลาซ่อม */
                                     <td><span class="badge badge-info">${item.status}</span></td>
                                 </tr>`);
                             });
@@ -557,6 +675,7 @@ $(document).ready(function() {
                         headers: { 'Authorization': `Bearer ${token}` },
                         success: function() {
                             fetchEquipment($('.pagination .active a').data('page') || 1);
+                            fetchDashboardData();
                         }
                     });
                 }
@@ -600,6 +719,7 @@ $(document).ready(function() {
                 success: function() {
                     $equipmentModal.modal('hide');
                     fetchEquipment($('.pagination .active a').data('page') || 1);
+                    fetchDashboardData();
                 }
             });
         });
@@ -723,6 +843,7 @@ $(document).ready(function() {
                     displayMessage($message, response.message, true);
                     $('#csvFile').val(''); $('#csvFileName').text('ยังไม่ได้เลือกไฟล์');
                     fetchEquipment();
+                    fetchDashboardData();
                 },
                 error: function(jqXHR) {
                     displayMessage($message, jqXHR.responseJSON.message, false);
@@ -752,75 +873,6 @@ $(document).ready(function() {
             });
             setTimeout(() => { window.print(); }, 500);
         });
-        
-        // Initial Load (Chart Data)
-        let statusChartInstance = null;
-        let typeBarChartInstance = null;
-        let typePieChartInstance = null;
-
-        const fetchDashboardData = () => {
-            $.ajax({
-                url: '/api/equipment/summary',
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` },
-                success: function(summary) {
-                    $('#total-assets').text(summary.total || 0);
-                    $('#normal-status').text(summary.byStatus.find(s => s.status === 'Normal')?.count || 0);
-                    $('#repair-status').text(summary.byStatus.find(s => s.status === 'In Repair')?.count || 0);
-                    $('#disposed-status').text(summary.byStatus.find(s => s.status === 'Disposed')?.count || 0);
-
-                    const statusCtx = document.getElementById('statusChart');
-                    if (statusChartInstance) statusChartInstance.destroy();
-                    statusChartInstance = new Chart(statusCtx, {
-                        type: 'pie',
-                        data: {
-                            labels: summary.byStatus.map(s => s.status),
-                            datasets: [{
-                                data: summary.byStatus.map(s => s.count),
-                                backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d', '#17a2b8'],
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
-
-                    const typeBarCtx = document.getElementById('typeChart');
-                    if (typeBarChartInstance) typeBarChartInstance.destroy();
-                    typeBarChartInstance = new Chart(typeBarCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: summary.byType.slice(0, 5).map(t => t.type),
-                            datasets: [{
-                                label: 'จำนวน',
-                                data: summary.byType.slice(0, 5).map(t => t.count),
-                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                            }]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: true } },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
-                    
-                    const equipmentTypeCtx = document.getElementById('equipmentTypeChart');
-                    if (typePieChartInstance) typePieChartInstance.destroy();
-                    typePieChartInstance = new Chart(equipmentTypeCtx, {
-                        type: 'pie',
-                        data: {
-                            labels: summary.byType.map(t => t.type),
-                            datasets: [{
-                                data: summary.byType.map(t => t.count),
-                                backgroundColor: [
-                                    '#3c8dbc', '#00c0ef', '#00a65a', '#f39c12', '#f56954', '#d2d6de',
-                                    '#605ca8', '#ff851b', '#01ff70', '#39cccc', '#3d9970', '#001f3f'
-                                ],
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
-                }
-            });
-        };
 
         // Initial Load
         fetchDashboardData();

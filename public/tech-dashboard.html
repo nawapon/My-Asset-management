@@ -26,35 +26,39 @@
     <div class="sidebar">
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item"><a href="#" class="nav-link active"><i class="nav-icon fas fa-clipboard-list"></i><p>รายการแจ้งซ่อม</p></a></li>
+          <li class="nav-item">
+            <a href="#" class="nav-link active">
+              <i class="nav-icon fas fa-tasks"></i><p>คิวงานช่าง</p>
+            </a>
+          </li>
         </ul>
       </nav>
     </div>
   </aside>
 
   <div class="content-wrapper">
-    <div class="content-header">
-      <div class="container-fluid"><div class="row mb-2"><div class="col-sm-6"><h1 class="m-0">แดชบอร์ดช่างเทคนิค</h1></div></div></div>
-    </div>
+    <section class="content-header">
+        <div class="container-fluid">
+            <h1><i class="fas fa-tasks"></i> คิวงานช่าง</h1>
+        </div>
+    </section>
 
     <section class="content">
       <div class="container-fluid">
-        <div class="card card-info card-outline">
-          <div class="card-header"><h3 class="card-title"><i class="fas fa-list-alt"></i> รายการแจ้งซ่อมทั้งหมด</h3></div>
-          <div class="card-body table-responsive p-0">
-            <table class="table table-hover text-nowrap">
-              <thead>
-                <tr>
-                  <th>เลขครุภัณฑ์</th>
-                  <th>ผู้แจ้ง</th>
-                  <th>ปัญหา</th>
-                  <th>วันที่แจ้ง</th>
-                  <th>สถานะ</th>
-                  <th style="width: 150px;">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="allRepairsTableBody"></tbody>
-            </table>
+        <div id="repair-queue-view">
+          <div class="kanban-board">
+            <div class="kanban-column">
+              <div class="kanban-column-header bg-warning">รอรับเรื่อง (Pending)</div>
+              <div class="kanban-column-body" id="pending-column"></div>
+            </div>
+            <div class="kanban-column">
+              <div class="kanban-column-header bg-primary">กำลังดำเนินการ (In Progress)</div>
+              <div class="kanban-column-body" id="inprogress-column"></div>
+            </div>
+            <div class="kanban-column">
+              <div class="kanban-column-header bg-success">ซ่อมสำเร็จ (Completed)</div>
+              <div class="kanban-column-body" id="completed-column"></div>
+            </div>
           </div>
         </div>
       </div>

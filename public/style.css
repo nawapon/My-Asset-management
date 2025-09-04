@@ -75,7 +75,6 @@
     gap: 8px; /* Adds space between dropdown and button */
 }
 
-
 /* Styles for Details Modal */
 .details-dl dt {
     font-weight: 700;
@@ -101,6 +100,64 @@
 .ekko-lightbox .modal-dialog {
     max-width: 450px;
 }
+
+/* Styles for Kanban Board */
+.kanban-board {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 15px;
+}
+
+.kanban-column {
+    flex: 1 1 350px; /* Flex-grow, flex-shrink, basis */
+    min-width: 320px;
+    border-radius: 5px;
+    background-color: #f4f4f4;
+}
+
+.kanban-column-header {
+    padding: 10px 15px;
+    font-weight: bold;
+    color: white;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.kanban-column-body {
+    padding: 10px;
+    min-height: 70vh;
+}
+
+.kanban-card {
+    background-color: white;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    border-left: 5px solid #6c757d;
+}
+.kanban-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+    transition: all 0.2s ease-in-out;
+}
+.kanban-card-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.kanban-card-meta {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+.kanban-card-problem {
+    font-size: 0.9em;
+    margin-top: 10px;
+    white-space: normal;
+}
+
 
 /* Print-specific styles (UPDATED) */
 #print-area { display: none; }
