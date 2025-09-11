@@ -17,6 +17,7 @@
     "fast-csv": "^5.0.5",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "mysql2": "^3.14.4",
     "path-to-regexp": "^6.3.0",
     "sqlite3": "^5.1.7"
   }

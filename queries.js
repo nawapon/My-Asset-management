@@ -1,5 +1,5 @@
 // queries.js
-// This file centralizes all SQL queries for the application.
+// Centralized SQL queries, adapted for MariaDB/MySQL.
 
 module.exports = {
     Auth: {
@@ -10,12 +10,22 @@ module.exports = {
         GET_ALL_BASE: `
             SELECT 
                 rr.id, rr.problemDescription, rr.requestDate, rr.status,
-                rr.reporterLocation, rr.reporterContact,
+                rr.reporterLocation, rr.reporterContact, rr.acceptedDate, rr.completedDate,
                 e.assetNumber,
                 COALESCE(u.fullName, rr.reporterName, 'N/A') as requestUser
             FROM repair_requests rr
             JOIN equipment e ON rr.equipmentId = e.id
             LEFT JOIN users u ON rr.userId = u.id`,
+        GET_BY_ID: `
+            SELECT 
+                rr.id, rr.problemDescription, rr.requestDate, rr.status,
+                rr.reporterLocation, rr.reporterContact, rr.acceptedDate, rr.completedDate,
+                rr.solutionNotes, e.assetNumber,
+                COALESCE(u.fullName, rr.reporterName, 'N/A') as requestUser
+            FROM repair_requests rr
+            JOIN equipment e ON rr.equipmentId = e.id
+            LEFT JOIN users u ON rr.userId = u.id
+            WHERE rr.id = ?`,
         INSERT_PUBLIC: `
             INSERT INTO repair_requests 
             (equipmentId, reporterName, reporterLocation, reporterContact, problemDescription, requestDate, status) 
@@ -40,17 +50,39 @@ module.exports = {
         COUNT_ALL_BASE: `SELECT COUNT(*) as total FROM equipment`,
         INSERT: `INSERT INTO equipment (assetNumber, name, type, location, status) VALUES (?, ?, ?, ?, ?)`,
         UPDATE: `UPDATE equipment SET assetNumber = ?, name = ?, type = ?, location = ?, status = ? WHERE id = ?`,
-        DELETE: `DELETE FROM equipment WHERE id = ?`
+        DELETE: `DELETE FROM equipment WHERE id = ?`,
+        GET_SUMMARY: {
+            total: "SELECT COUNT(*) as count FROM equipment",
+            byStatus: "SELECT status, COUNT(*) as count FROM equipment GROUP BY status",
+            byType: "SELECT type, COUNT(*) as count FROM equipment WHERE type IS NOT NULL AND type != '' GROUP BY type ORDER BY count DESC",
+            timeSummary: `
+                SELECT 
+                    AVG(TIMESTAMPDIFF(SECOND, requestDate, acceptedDate)) as avgResponseSeconds,
+                    AVG(TIMESTAMPDIFF(SECOND, acceptedDate, completedDate)) as avgResolutionSeconds
+                FROM repair_requests 
+                WHERE status = 'Completed' AND acceptedDate IS NOT NULL AND completedDate IS NOT NULL`,
+            timeByType: `
+                SELECT 
+                    e.type, 
+                    AVG(TIMESTAMPDIFF(SECOND, rr.acceptedDate, rr.completedDate)) as avgResolutionSeconds
+                FROM repair_requests rr
+                JOIN equipment e ON rr.equipmentId = e.id
+                WHERE rr.status = 'Completed' AND rr.acceptedDate IS NOT NULL AND rr.completedDate IS NOT NULL AND e.type IS NOT NULL AND e.type != ''
+                GROUP BY e.type
+                ORDER BY avgResolutionSeconds DESC
+                LIMIT 5`
+        }
     },
     CSV: {
+        // MariaDB/MySQL "UPSERT" syntax
         IMPORT: `
             INSERT INTO equipment (assetNumber, name, type, location, status) 
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(assetNumber) DO UPDATE SET
-                name=excluded.name,
-                type=excluded.type,
-                location=excluded.location,
-                status=excluded.status;`,
+            ON DUPLICATE KEY UPDATE
+                name=VALUES(name),
+                type=VALUES(type),
+                location=VALUES(location),
+                status=VALUES(status);`,
         EXPORT: `SELECT * FROM equipment`
     },
     Users: {
