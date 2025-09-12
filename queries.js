@@ -1,5 +1,4 @@
-// queries.js
-// Centralized SQL queries, adapted for MariaDB/MySQL.
+// queries.js (Adapted for MariaDB/MySQL with password reset queries)
 
 module.exports = {
     Auth: {
@@ -11,7 +10,7 @@ module.exports = {
             SELECT 
                 rr.id, rr.problemDescription, rr.requestDate, rr.status,
                 rr.reporterLocation, rr.reporterContact, rr.acceptedDate, rr.completedDate,
-                e.assetNumber,
+                rr.imagePath, e.assetNumber,
                 COALESCE(u.fullName, rr.reporterName, 'N/A') as requestUser
             FROM repair_requests rr
             JOIN equipment e ON rr.equipmentId = e.id
@@ -20,7 +19,7 @@ module.exports = {
             SELECT 
                 rr.id, rr.problemDescription, rr.requestDate, rr.status,
                 rr.reporterLocation, rr.reporterContact, rr.acceptedDate, rr.completedDate,
-                rr.solutionNotes, e.assetNumber,
+                rr.solutionNotes, rr.imagePath, e.assetNumber,
                 COALESCE(u.fullName, rr.reporterName, 'N/A') as requestUser
             FROM repair_requests rr
             JOIN equipment e ON rr.equipmentId = e.id
@@ -28,13 +27,12 @@ module.exports = {
             WHERE rr.id = ?`,
         INSERT_PUBLIC: `
             INSERT INTO repair_requests 
-            (equipmentId, reporterName, reporterLocation, reporterContact, problemDescription, requestDate, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (equipmentId, reporterName, reporterLocation, reporterContact, problemDescription, imagePath, requestDate, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         INSERT_LOGGED_IN: `
             INSERT INTO repair_requests 
-            (equipmentId, userId, reporterName, reporterLocation, reporterContact, problemDescription, requestDate, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        UPDATE_STATUS: `UPDATE repair_requests SET status = ? WHERE id = ?`
+            (equipmentId, userId, reporterName, reporterLocation, reporterContact, problemDescription, imagePath, requestDate, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     },
     Equipment: {
         GET_DETAILS_BY_ASSET_NUMBER: `SELECT name, type, location, status FROM equipment WHERE assetNumber = ?`,
@@ -74,7 +72,6 @@ module.exports = {
         }
     },
     CSV: {
-        // MariaDB/MySQL "UPSERT" syntax
         IMPORT: `
             INSERT INTO equipment (assetNumber, name, type, location, status) 
             VALUES (?, ?, ?, ?, ?)
@@ -87,8 +84,18 @@ module.exports = {
     },
     Users: {
         GET_ALL: `SELECT id, fullName, username, role FROM users ORDER BY id DESC`,
+        INSERT_USER: `INSERT INTO users (fullName, username, password, role) VALUES (?, ?, ?, ?)`,
         UPDATE_ROLE: `UPDATE users SET role = ? WHERE id = ?`,
-        DELETE: `DELETE FROM users WHERE id = ?`
+        DELETE: `DELETE FROM users WHERE id = ?`,
+        // NEW QUERIES FOR PASSWORD RESET
+        REQUEST_RESET: `INSERT INTO password_reset_requests (userId, requestDate, status) VALUES (?, ?, 'pending')`,
+        GET_RESET_REQUESTS: `
+            SELECT prr.id, prr.requestDate, u.username, u.fullName 
+            FROM password_reset_requests prr
+            JOIN users u ON prr.userId = u.id
+            WHERE prr.status = 'pending'
+            ORDER BY prr.requestDate ASC`,
+        COMPLETE_RESET_REQUEST: `UPDATE password_reset_requests SET status = 'completed' WHERE id = ?`
     }
 };
 

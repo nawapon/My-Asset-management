@@ -27,6 +27,11 @@
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <li class="nav-item">
+            <a href="#" class="nav-link active" data-target="#dashboard-view">
+              <i class="nav-icon fas fa-tachometer-alt"></i><p>ภาพรวม (Dashboard)</p>
+            </a>
+          </li>
+          <li class="nav-item">
             <a href="#" class="nav-link" data-target="#equipment-view">
               <i class="nav-icon fas fa-desktop"></i><p>จัดการครุภัณฑ์</p>
             </a>
@@ -44,7 +49,33 @@
   <div class="content-wrapper">
     <section class="content pt-3">
       <div class="container-fluid">
-        <div id="equipment-view" class="content-section">
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="content-section active">
+          <div class="row">
+            <div class="col-12 col-sm-6 col-md-3"><div class="info-box"><span class="info-box-icon bg-info elevation-1"><i class="fas fa-desktop"></i></span><div class="info-box-content"><span class="info-box-text">ครุภัณฑ์ทั้งหมด</span><span class="info-box-number" id="total-assets">0</span></div></div></div>
+            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span><div class="info-box-content"><span class="info-box-text">สถานะปกติ</span><span class="info-box-number" id="normal-status">0</span></div></div></div>
+            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-warning elevation-1"><i class="fas fa-tools"></i></span><div class="info-box-content"><span class="info-box-text">กำลังซ่อม</span><span class="info-box-number" id="repair-status">0</span></div></div></div>
+            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-danger elevation-1"><i class="fas fa-times-circle"></i></span><div class="info-box-content"><span class="info-box-text">จำหน่าย</span><span class="info-box-number" id="disposed-status">0</span></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-md-6"><div class="info-box mb-3 bg-secondary"><span class="info-box-icon"><i class="fas fa-stopwatch"></i></span><div class="info-box-content"><span class="info-box-text">เวลาตอบสนองเฉลี่ย</span><span class="info-box-number" id="avg-response-time">-</span></div></div></div>
+            <div class="col-md-6"><div class="info-box mb-3 bg-purple"><span class="info-box-icon"><i class="fas fa-hourglass-half"></i></span><div class="info-box-content"><span class="info-box-text">เวลาซ่อมเฉลี่ย</span><span class="info-box-number" id="avg-resolution-time">-</span></div></div></div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card card-danger"><div class="card-header"><h3 class="card-title">สรุปตามสถานะ</h3></div><div class="card-body"><canvas id="statusChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
+              <div class="card card-info"><div class="card-header"><h3 class="card-title">5 ประเภทครุภัณฑ์ที่ซ่อมนานที่สุด (เฉลี่ย)</h3></div><div class="card-body"><canvas id="avgTimeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
+            </div>
+            <div class="col-md-6">
+              <div class="card card-success"><div class="card-header"><h3 class="card-title">5 ประเภทครุภัณฑ์ที่เยอะที่สุด</h3></div><div class="card-body"><canvas id="typeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
+              <div class="card card-primary"><div class="card-header"><h3 class="card-title">ประเภทครุภัณฑ์ทั้งหมด</h3></div><div class="card-body"><canvas id="equipmentTypeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipment View -->
+        <div id="equipment-view" class="content-section" style="display: none;">
           <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">รายการครุภัณฑ์คอมพิวเตอร์</h3>
@@ -84,7 +115,8 @@
           </div>
         </div>
 
-        <div id="users-view" class="content-section">
+        <!-- Users View -->
+        <div id="users-view" class="content-section" style="display: none;">
           <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title"><i class="fas fa-users"></i> รายการผู้ใช้งาน</h3>
@@ -109,6 +141,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </section>
   </div>
@@ -157,7 +190,6 @@
                             <th>ปัญหา</th>
                             <th>วันที่รับงาน</th>
                             <th>วันที่ซ่อมเสร็จ</th>
-                            <th>สรุประยะเวลา</th>
                             <th>สถานะ</th>
                           </tr>
                         </thead>
@@ -211,4 +243,3 @@
 <script src="app.js"></script>
 </body>
 </html>
-

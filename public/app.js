@@ -154,12 +154,14 @@ $(document).ready(function() {
             localStorage.clear();
             window.location.href = '/index.html';
         });
+
         $('.nav-sidebar .nav-link').on('click', function(e) {
             e.preventDefault();
+            const target = $(this).data('target');
             $('.nav-sidebar .nav-link').removeClass('active');
             $(this).addClass('active');
-            $('.content-section').removeClass('active');
-            $($(this).data('target')).addClass('active');
+            $('.content-section').removeClass('active').hide();
+            $(target).addClass('active').show();
         });
     }
     
@@ -440,10 +442,12 @@ $(document).ready(function() {
         const $resetSearchBtn = $('#resetSearchBtn');
         let modalTrigger = null; 
 
-        let statusChartInstance = null;
-        let typeBarChartInstance = null;
-        let typePieChartInstance = null;
-        let avgTimeChartInstance = null;
+        // Set initial view
+        $('#dashboard-view').addClass('active').show();
+        $('#equipment-view').removeClass('active').hide();
+        $('#users-view').removeClass('active').hide();
+        
+        let statusChartInstance, typeBarChartInstance, typePieChartInstance, avgTimeChartInstance;
 
         const fetchDashboardData = () => {
             $.ajax({
@@ -455,80 +459,74 @@ $(document).ready(function() {
                     $('#normal-status').text(summary.byStatus.find(s => s.status === 'Normal')?.count || 0);
                     $('#repair-status').text(summary.byStatus.find(s => s.status === 'In Repair')?.count || 0);
                     $('#disposed-status').text(summary.byStatus.find(s => s.status === 'Disposed')?.count || 0);
-                    $('#avg-response-time').text(formatDuration(0, (summary.timeSummary.avgResponseSeconds || 0) * 1000));
-                    $('#avg-resolution-time').text(formatDuration(0, (summary.timeSummary.avgResolutionSeconds || 0) * 1000));
-
-                    const statusCtx = document.getElementById('statusChart');
-                    if (statusChartInstance) statusChartInstance.destroy();
-                    statusChartInstance = new Chart(statusCtx, {
-                        type: 'pie',
-                        data: {
-                            labels: summary.byStatus.map(s => s.status),
-                            datasets: [{
-                                data: summary.byStatus.map(s => s.count),
-                                backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d', '#17a2b8'],
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
-
-                    const typeBarCtx = document.getElementById('typeChart');
-                    if (typeBarChartInstance) typeBarChartInstance.destroy();
-                    typeBarChartInstance = new Chart(typeBarCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: summary.byType.slice(0, 5).map(t => t.type),
-                            datasets: [{
-                                label: 'จำนวน',
-                                data: summary.byType.slice(0, 5).map(t => t.count),
-                                backgroundColor: 'rgba(40, 167, 69, 0.7)',
-                            }]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            scales: { y: { beginAtZero: true } },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
+                    $('#avg-response-time').text(formatDuration(0, (summary.timeSummary.avgResponseSeconds || 0) * 1000) || '-');
+                    $('#avg-resolution-time').text(formatDuration(0, (summary.timeSummary.avgResolutionSeconds || 0) * 1000) || '-');
                     
-                    const equipmentTypeCtx = document.getElementById('equipmentTypeChart');
-                    if (typePieChartInstance) typePieChartInstance.destroy();
-                    typePieChartInstance = new Chart(equipmentTypeCtx, {
-                        type: 'pie',
-                        data: {
-                            labels: summary.byType.map(t => t.type),
-                            datasets: [{
-                                data: summary.byType.map(t => t.count),
-                                backgroundColor: [
-                                    '#3c8dbc', '#00c0ef', '#00a65a', '#f39c12', '#f56954', '#d2d6de',
-                                    '#605ca8', '#ff851b', '#01ff70', '#39cccc', '#3d9970', '#001f3f'
-                                ],
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
+                    const statusCtx = document.getElementById('statusChart')?.getContext('2d');
+                    if (statusCtx) {
+                        if (statusChartInstance) statusChartInstance.destroy();
+                        statusChartInstance = new Chart(statusCtx, {
+                            type: 'pie',
+                            data: {
+                                labels: summary.byStatus.map(s => s.status),
+                                datasets: [{
+                                    data: summary.byStatus.map(s => s.count),
+                                    backgroundColor: ['#28a745', '#ffc107', '#dc3545', '#6c757d'],
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+                        });
+                    }
+
+                    const typeBarCtx = document.getElementById('typeChart')?.getContext('2d');
+                    if (typeBarCtx) {
+                        if (typeBarChartInstance) typeBarChartInstance.destroy();
+                        typeBarChartInstance = new Chart(typeBarCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: summary.byType.slice(0, 5).map(t => t.type),
+                                datasets: [{
+                                    label: 'จำนวน',
+                                    data: summary.byType.slice(0, 5).map(t => t.count),
+                                    backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+                        });
+                    }
                     
-                    const avgTimeCtx = document.getElementById('avgTimeChart');
-                    if (avgTimeChartInstance) avgTimeChartInstance.destroy();
-                    avgTimeChartInstance = new Chart(avgTimeCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: summary.timeByType.map(t => t.type),
-                            datasets: [{
-                                label: 'เวลาซ่อมเฉลี่ย (ชั่วโมง)',
-                                data: summary.timeByType.map(t => (t.avgResolutionSeconds / 3600).toFixed(2)),
-                                backgroundColor: 'rgba(110, 68, 191, 0.7)',
-                                borderColor: 'rgba(110, 68, 191, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            indexAxis: 'y',
-                            scales: { x: { beginAtZero: true, title: { display: true, text: 'ชั่วโมง' } } },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
+                    const equipmentTypeCtx = document.getElementById('equipmentTypeChart')?.getContext('2d');
+                    if(equipmentTypeCtx) {
+                        if (typePieChartInstance) typePieChartInstance.destroy();
+                        typePieChartInstance = new Chart(equipmentTypeCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: summary.byType.map(t => t.type),
+                                datasets: [{
+                                    data: summary.byType.map(t => t.count),
+                                    backgroundColor: ['#3c8dbc', '#00c0ef', '#00a65a', '#f39c12', '#f56954', '#d2d6de', '#605ca8', '#ff851b'],
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                        });
+                    }
+                    
+                    const avgTimeCtx = document.getElementById('avgTimeChart')?.getContext('2d');
+                    if(avgTimeCtx) {
+                        if (avgTimeChartInstance) avgTimeChartInstance.destroy();
+                        avgTimeChartInstance = new Chart(avgTimeCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: summary.timeByType.map(t => t.type),
+                                datasets: [{
+                                    label: 'เวลาซ่อมเฉลี่ย (ชั่วโมง)',
+                                    data: summary.timeByType.map(t => (t.avgResolutionSeconds / 3600).toFixed(2)),
+                                    backgroundColor: 'rgba(210, 4, 45, 0.7)',
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, title: { display: true, text: 'ชั่วโมง' } } }, plugins: { legend: { display: false } } }
+                        });
+                    }
                 }
             });
         };
@@ -558,6 +556,7 @@ $(document).ready(function() {
                     $equipmentTableBody.empty();
                     result.data.forEach(item => {
                         const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${item.assetNumber}`;
+                        const statusBadge = {"Normal": "badge-success", "In Repair": "badge-warning", "Disposed": "badge-danger"};
                         const row = `
                             <tr>
                                 <td>
@@ -569,7 +568,7 @@ $(document).ready(function() {
                                 <td>${item.name}</td>
                                 <td>${item.type || ''}</td>
                                 <td>${item.location || ''}</td>
-                                <td>${item.status}</td>
+                                <td><span class="badge ${statusBadge[item.status] || 'badge-secondary'}">${item.status}</span></td>
                                 <td class="action-cell-admin">
                                     <button class="btn btn-primary btn-sm details-btn" data-assetnumber="${item.assetNumber}" title="ดูรายละเอียด"><i class="fas fa-eye"></i></button>
                                     <button class="btn btn-warning btn-sm edit-btn" data-id="${item.id}" title="แก้ไข"><i class="fas fa-pencil-alt"></i></button>
@@ -640,7 +639,7 @@ $(document).ready(function() {
                                     <td>${item.problemDescription}</td>
                                     <td>${formatDateTime(item.acceptedDate)}</td>
                                     <td>${formatDateTime(item.completedDate)}</td>
-                                    <td><span class="badge badge-info">${item.status}</span></td>
+                                    <td>${item.status}</td>
                                 </tr>`);
                             });
                         } else {
@@ -880,4 +879,3 @@ $(document).ready(function() {
         fetchUsers();
     }
 });
-

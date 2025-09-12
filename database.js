@@ -1,4 +1,4 @@
-// database.js (MariaDB/MySQL Connection)
+// database.js (MariaDB/MySQL Connection with Password Reset Table)
 
 const mysql = require('mysql2');
 require('dotenv').config();
@@ -52,14 +52,26 @@ const initialSetup = async () => {
                 reporterLocation VARCHAR(255),
                 reporterContact VARCHAR(255),
                 problemDescription TEXT,
+                imagePath VARCHAR(255),
                 requestDate DATETIME,
                 acceptedDate DATETIME,
                 completedDate DATETIME,
                 status VARCHAR(50) DEFAULT 'Pending',
                 technicianId INT,
                 solutionNotes TEXT,
-                FOREIGN KEY (equipmentId) REFERENCES equipment(id),
-                FOREIGN KEY (userId) REFERENCES users(id)
+                FOREIGN KEY (equipmentId) REFERENCES equipment(id) ON DELETE CASCADE,
+                FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // ★★★ NEWLY ADDED TABLE ★★★
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS password_reset_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                userId INT NOT NULL,
+                requestDate DATETIME NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending', /* pending, completed */
+                FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
