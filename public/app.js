@@ -240,6 +240,8 @@ $(document).ready(function() {
         $userEquipmentTableBody.on('click', '.details-btn', function(e) {
             modalTrigger = e.currentTarget;
             const assetNumber = $(this).data('assetnumber');
+            $('#repairNowBtn').data('assetnumber', assetNumber); 
+            
             $.ajax({
                 url: `/api/equipment/history/${assetNumber}`,
                 method: 'GET',
@@ -262,16 +264,64 @@ $(document).ready(function() {
                                 <td>${item.problemDescription}</td>
                                 <td>${formatDateTime(item.acceptedDate)}</td>
                                 <td>${formatDateTime(item.completedDate)}</td>
+                                <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>
                                 <td><span class="badge badge-info">${item.status}</span></td>
                             </tr>`);
                         });
                     } else {
-                        $historyBody.append('<tr><td colspan="6" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
+                        $historyBody.append('<tr><td colspan="7" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                     }
                     const $qrContainer = $('#detailsModalQrCode').empty();
                     const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
                     new QRCode($qrContainer[0], { text: qrUrl, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.H });
                     $('#detailsModal').modal('show');
+                }
+            });
+        });
+
+        $('#detailsModal').on('click', '#repairNowBtn', function() {
+            $('#detailsModal').modal('hide');
+        });
+
+        $('#repairNowModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget); 
+            const assetNumber = button.data('assetnumber');
+            const modal = $(this);
+            
+            modal.find('#repairAssetNumber').val(assetNumber);
+            modal.find('#repairReporterLocation').val($('#reporterLocation').val());
+            modal.find('#repairReporterContact').val($('#reporterContact').val());
+            
+            modal.find('#repairProblemDescription').val('');
+            $('#repairNowMessage').hide().text('');
+        });
+
+        $('#repairNowForm').on('submit', function(e) {
+            e.preventDefault();
+            const $message = $('#repairNowMessage');
+            const data = {
+                assetNumber: $('#repairAssetNumber').val(),
+                problemDescription: $('#repairProblemDescription').val(),
+                reporterLocation: $('#repairReporterLocation').val(),
+                reporterContact: $('#repairReporterContact').val(),
+            };
+            $.ajax({
+                url: '/api/repairs',
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function() {
+                    $('#repairNowModal').modal('hide');
+                    $('#repairNowModal').one('hidden.bs.modal', function() {
+                        $('#successModal').modal('show');
+                    });
+                    $('#repairNowForm')[0].reset();
+                    fetchMyRepairs();
+                },
+                error: function(jqXHR) {
+                    const errorMsg = jqXHR.responseJSON ? jqXHR.responseJSON.message : 'เกิดข้อผิดพลาด';
+                    displayMessage($message, errorMsg, false);
                 }
             });
         });
@@ -309,7 +359,7 @@ $(document).ready(function() {
                 contentType: 'application/json',
                 data: JSON.stringify({ assetNumber, problemDescription, reporterLocation, reporterContact }),
                 success: function() {
-                    displayMessage($('#formMessage'), 'แจ้งซ่อมสำเร็จ!', true);
+                    $('#successModal').modal('show');
                     $('#newRepairRequestForm')[0].reset();
                     $('#equipmentDetails').slideUp();
                     fetchMyRepairs();
@@ -348,7 +398,7 @@ $(document).ready(function() {
         fetchUserEquipment();
         fetchMyRepairs();
     }
-
+    
     // --- Tech Dashboard Page Logic ---
     if ($('body.tech-page').length) {
         const $techRepairModal = $('#techRepairModal');
@@ -639,11 +689,12 @@ $(document).ready(function() {
                                     <td>${item.problemDescription}</td>
                                     <td>${formatDateTime(item.acceptedDate)}</td>
                                     <td>${formatDateTime(item.completedDate)}</td>
+                                    <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>
                                     <td>${item.status}</td>
                                 </tr>`);
                             });
                         } else {
-                            $historyBody.append('<tr><td colspan="6" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
+                            $historyBody.append('<tr><td colspan="7" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                         }
                         const $qrContainer = $('#detailsModalQrCode').empty();
                         const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
@@ -726,12 +777,13 @@ $(document).ready(function() {
         const $usersTableBody = $('#usersTableBody');
         const $userModal = $('#userModal');
         const $userForm = $('#userForm');
-
+        
         const fetchUsers = () => {
             $.ajax({
                 url: '/api/users', method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
                 success: function(users) {
+                    window.allUsersData = users; // Store user data globally for editing
                     $usersTableBody.empty();
                     users.forEach(u => {
                         const isDisabled = u.id === user.id;
@@ -739,21 +791,13 @@ $(document).ready(function() {
                             <tr>
                                 <td>${u.fullName}</td>
                                 <td>${u.username}</td>
-                                <td>
-                                    <select class="form-control form-control-sm role-selector" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}>
-                                        <option value="user">User</option>
-                                        <option value="technician">Technician</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
-                                </td>
-                                <td class="user-action-cell">
-                                    <button class="btn btn-info btn-sm update-role-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}>อัปเดต</button>
-                                    <button class="btn btn-danger btn-sm delete-user-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''}><i class="fas fa-trash-alt"></i></button>
+                                <td>${u.role}</td>
+                                <td class="text-right">
+                                    <button class="btn btn-warning btn-sm edit-user-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''} title="แก้ไข"><i class="fas fa-pencil-alt"></i></button>
+                                    <button class="btn btn-danger btn-sm delete-user-btn" data-id="${u.id}" ${isDisabled ? 'disabled' : ''} title="ลบ"><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
-                        const $row = $(row);
-                        $row.find('.role-selector').val(u.role);
-                        $usersTableBody.append($row);
+                        $usersTableBody.append(row);
                     });
                 }
             });
@@ -762,27 +806,61 @@ $(document).ready(function() {
         $('#addUserBtn').on('click', function(e) {
             modalTrigger = e.currentTarget;
             $userForm[0].reset();
+            $('#userId').val(''); // Clear user ID for new user
             $('#userModalTitle').text('เพิ่มผู้ใช้งานใหม่');
+            $('#userPassword').attr('placeholder', 'กรอกรหัสผ่าน').prop('required', true); // Password is required for new user
+            $('#userConfirmPassword').attr('placeholder', 'ยืนยันรหัสผ่าน').prop('required', true);
             $userModal.modal('show');
         });
-
+        
+        $usersTableBody.on('click', '.edit-user-btn', function(e) {
+            modalTrigger = e.currentTarget;
+            const id = $(this).data('id');
+            const userData = window.allUsersData.find(u => u.id === id);
+            
+            if (userData) {
+                $('#userModalTitle').text('แก้ไขข้อมูลผู้ใช้งาน');
+                $('#userId').val(userData.id);
+                $('#userFullName').val(userData.fullName);
+                $('#userUsername').val(userData.username);
+                $('#userRole').val(userData.role);
+                $('#userPassword').val('').attr('placeholder', 'กรอกรหัสผ่านใหม่ (ถ้าต้องการเปลี่ยน)').prop('required', false);
+                $('#userConfirmPassword').val('').attr('placeholder', 'ยืนยันรหัสผ่านใหม่').prop('required', false);
+                $userModal.modal('show');
+            }
+        });
+        
         $userForm.on('submit', function(e) {
             e.preventDefault();
+            const userId = $('#userId').val();
             const password = $('#userPassword').val();
             const confirmPassword = $('#userConfirmPassword').val();
+
             if (password !== confirmPassword) {
                 alert('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
                 return;
             }
+
             const userData = {
                 fullName: $('#userFullName').val(),
                 username: $('#userUsername').val(),
-                password: password,
                 role: $('#userRole').val()
             };
+
+            if (password) {
+                userData.password = password;
+            } else if (!userId) { // Password is required for NEW users
+                 alert('กรุณากำหนดรหัสผ่านสำหรับผู้ใช้ใหม่');
+                 return;
+            }
+
+            const isEditing = !!userId;
+            const url = isEditing ? `/api/users/${userId}` : '/api/users';
+            const method = isEditing ? 'PUT' : 'POST';
+
             $.ajax({
-                url: '/api/users',
-                method: 'POST',
+                url: url,
+                method: method,
                 headers: { 'Authorization': `Bearer ${token}` },
                 contentType: 'application/json',
                 data: JSON.stringify(userData),
@@ -792,25 +870,11 @@ $(document).ready(function() {
                     fetchUsers();
                 },
                 error: function(jqXHR) {
-                    alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถสร้างผู้ใช้ได้'));
+                    alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลผู้ใช้ได้'));
                 }
             });
         });
-
-
-        $usersTableBody.on('click', '.update-role-btn', function() {
-            const id = $(this).data('id');
-            const role = $(`.role-selector[data-id="${id}"]`).val();
-            if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการเปลี่ยนบทบาทเป็น '${role}'?`)) {
-                 $.ajax({
-                    url: `/api/users/${id}`, method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    contentType: 'application/json', data: JSON.stringify({ role }),
-                    success: function() { alert('อัปเดตบทบาทสำเร็จ!'); fetchUsers(); }
-                });
-            }
-        });
-
+        
         $usersTableBody.on('click', '.delete-user-btn', function() {
             const id = $(this).data('id');
             if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้งานคนนี้?')) {
@@ -879,3 +943,4 @@ $(document).ready(function() {
         fetchUsers();
     }
 });
+

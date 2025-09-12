@@ -92,7 +92,7 @@
                         <form id="newRepairRequestForm">
                             <div class="card-body">
                                 <div class="form-group"><label for="assetNumber">เลขครุภัณฑ์</label><input type="text" class="form-control" id="assetNumber" placeholder="พิมพ์เลขครุภัณฑ์เพื่อแจ้งซ่อม..." required></div>
-                                <div id="equipmentDetails" class="callout callout-info" style="display: none;"><h5 id="equipmentName">ชื่ออุปกรณ์: -</h5><p class="mb-0" id="equipmentLocation">สถานที่: -</p></div>
+                                <div id="equipmentDetails" class="callout callout-info" style="display: none;"><h id="equipmentName">ชื่ออุปกรณ์: -</h><p class="mb-0" id="equipmentLocation">สถานที่: -</p></div>
                                 <div class="form-group">
                                     <label for="reporterLocation">สถานที่ / ที่ตั้ง ของผู้แจ้ง</label>
                                     <input type="text" class="form-control" id="reporterLocation" placeholder="เช่น อาคาร A ชั้น 2 ห้อง 204" required>
@@ -153,7 +153,8 @@
                             <th>ผู้แจ้ง</th>
                             <th>ปัญหา</th>
                             <th>วันที่รับงาน</th>
-                            <th>วันที่ดำเนินการเสร็จ</th>
+                            <th>วันที่ซ่อมเสร็จ</th>
+                            <th>สรุประยะเวลา</th>
                             <th>สถานะ</th>
                           </tr>
                         </thead>
@@ -163,11 +164,63 @@
                 <hr>
                 <div id="detailsModalQrCode" class="qr-code-modal-container"></div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" id="repairNowBtn" data-toggle="modal" data-target="#repairNowModal" data-dismiss="modal"><i class="fas fa-wrench"></i> แจ้งซ่อมทันที</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Repair Now Modal -->
+<div class="modal fade" id="repairNowModal" tabindex="-1" role="dialog" aria-labelledby="repairNowModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="repairNowModalLabel">แจ้งซ่อมครุภัณฑ์</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <form id="repairNowForm">
+                    <div class="form-group">
+                        <label for="repairAssetNumber">เลขครุภัณฑ์</label>
+                        <input type="text" class="form-control" id="repairAssetNumber">
+                    </div>
+                    <div class="form-group">
+                        <label for="repairProblemDescription">รายละเอียดปัญหา</label>
+                        <textarea class="form-control" id="repairProblemDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="repairReporterLocation">สถานที่/ห้อง</label>
+                        <input type="text" class="form-control" id="repairReporterLocation" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="repairReporterContact">เบอร์ติดต่อ</label>
+                        <input type="text" class="form-control" id="repairReporterContact" required>
+                    </div>
+                    <div id="repairNowMessage" class="mt-2" style="display: none;"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" form="repairNowForm" class="btn btn-primary"><i class="fas fa-paper-plane"></i> ส่งเรื่อง</button>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" role="dialog" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4 class="modal-title" id="successModalLabel">แจ้งซ่อมสำเร็จ!</h4>
+                <p>เจ้าหน้าที่จะดำเนินการตรวจสอบต่อไป</p>
+                <button type="button" class="btn btn-success" data-dismiss="modal">ตกลง</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>

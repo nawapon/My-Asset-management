@@ -64,17 +64,7 @@ const initialSetup = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
-        // ★★★ NEWLY ADDED TABLE ★★★
-        await connection.query(`
-            CREATE TABLE IF NOT EXISTS password_reset_requests (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                userId INT NOT NULL,
-                requestDate DATETIME NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending', /* pending, completed */
-                FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        `);
-
+        
         console.log('Tables are ready.');
 
     } catch (err) {

@@ -190,6 +190,7 @@
                             <th>ปัญหา</th>
                             <th>วันที่รับงาน</th>
                             <th>วันที่ซ่อมเสร็จ</th>
+                            <th>สรุประยะเวลา</th>
                             <th>สถานะ</th>
                           </tr>
                         </thead>
@@ -213,6 +214,7 @@
             </div>
             <div class="modal-body">
                 <form id="userForm">
+                    <input type="hidden" id="userId">
                     <div class="form-group"><label for="userFullName">ชื่อ-นามสกุล</label><input type="text" class="form-control" id="userFullName" required></div>
                     <div class="form-group"><label for="userUsername">ชื่อผู้ใช้ (Username)</label><input type="text" class="form-control" id="userUsername" required></div>
                     <div class="form-group"><label for="userPassword">รหัสผ่าน</label><input type="password" class="form-control" id="userPassword" placeholder="กรอกเพื่อตั้งรหัสผ่านใหม่"></div>
@@ -243,3 +245,4 @@
 <script src="app.js"></script>
 </body>
 </html>
+
