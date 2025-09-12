@@ -942,5 +942,85 @@ $(document).ready(function() {
         fetchEquipment();
         fetchUsers();
     }
+
+    // --- Scan and Repair Page Logic ---
+    if ($('body.scan-page').length) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const assetNumber = urlParams.get('asset');
+        const $formContainer = $('#form-container');
+        const $detailsContainer = $('#details-container');
+        const $loading = $('#loading');
+        const $message = $('#message');
+        const $successMessage = $('#successMessage');
+        const $repairForm = $('#repairForm');
+
+        if (!assetNumber) {
+            $loading.hide();
+            displayMessage($message, 'ไม่พบหมายเลขครุภัณฑ์ใน URL', false);
+            return;
+        }
+
+        $('#assetNumberHidden').val(assetNumber);
+
+        $.ajax({
+            url: `/api/public/equipment/${assetNumber}`,
+            method: 'GET',
+            success: function(details) {
+                $loading.hide();
+                $detailsContainer.show();
+                $formContainer.show();
+                $('#assetNumberDisplay').text(assetNumber);
+                $('#assetNameDisplay').text(details.name);
+                $('#assetTypeDisplay').text(details.type || '-');
+                $('#assetLocationDisplay').text(details.location || '-');
+                const statusBadge = {"Normal": "badge-success", "In Repair": "badge-warning", "Disposed": "badge-danger"};
+                $('#assetStatusDisplay').html(`<span class="badge ${statusBadge[details.status] || 'badge-secondary'}">${details.status}</span>`);
+            },
+            error: function(jqXHR) {
+                $loading.hide();
+                const errorMsg = jqXHR.responseJSON ? jqXHR.responseJSON.message : 'ไม่สามารถโหลดข้อมูลครุภัณฑ์ได้';
+                displayMessage($message, errorMsg, false);
+            }
+        });
+
+        $repairForm.on('submit', function(e) {
+            e.preventDefault();
+            
+            const problemDescription = $('#problemDescription').val().trim();
+            const reporterName = $('#reporterName').val().trim();
+            const reporterLocation = $('#reporterLocation').val().trim();
+            const reporterContact = $('#reporterContact').val().trim();
+            
+            // Enhanced client-side validation
+            if (!problemDescription || !reporterName || !reporterLocation || !reporterContact) {
+                displayMessage($message, 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง', false);
+                return;
+            }
+
+            const data = {
+                assetNumber: $('#assetNumberHidden').val(),
+                problemDescription: problemDescription,
+                reporterName: reporterName,
+                reporterLocation: reporterLocation,
+                reporterContact: reporterContact,
+            };
+
+            $.ajax({
+                url: '/api/public/repairs',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    $formContainer.hide();
+                    $detailsContainer.hide();
+                    $successMessage.show();
+                },
+                error: function(jqXHR) {
+                    const errorMsg = jqXHR.responseJSON ? jqXHR.responseJSON.message : 'เกิดข้อผิดพลาดในการส่งข้อมูล';
+                    displayMessage($message, errorMsg, false);
+                }
+            });
+        });
+    }
 });
 
