@@ -1,4 +1,4 @@
-// server.js (Corrected for MariaDB/mysql2 async/await syntax)
+// server.js (Complete Version with Telegram Integration)
 
 const express = require('express');
 const cors = require('cors');
@@ -10,14 +10,15 @@ const fs = require('fs');
 const csv = require('fast-csv');
 require('dotenv').config();
 
-const db = require('./database.js'); // This is now the mysql2 pool
+const db = require('./database.js');
 const queries = require('./queries.js');
+const { sendRepairNotification } = require('./telegram.js'); // Import the telegram notifier
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Middleware setup...
+// Middleware setup
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -27,6 +28,7 @@ if (!fs.existsSync(uploadDir)){
 }
 const upload = multer({ dest: uploadDir });
 
+// JWT Authentication Middleware
 function authenticateToken(req, res, next) {
     let token;
     const authHeader = req.headers['authorization'];
@@ -41,14 +43,12 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// ========== ASYNC/AWAIT WRAPPER for cleaner routes ==========
+// Async/Await Wrapper for cleaner routes
 const asyncHandler = fn => (req, res, next) => {
     return Promise
         .resolve(fn(req, res, next))
         .catch(next);
 };
-
-// ========== ALL ROUTES ARE NOW ASYNC/AWAIT ==========
 
 // --- Public Routes ---
 app.get('/api/public/equipment/:assetNumber', asyncHandler(async (req, res) => {
@@ -72,6 +72,17 @@ app.post('/api/public/repairs', asyncHandler(async (req, res) => {
     
     const params = [equipment.id, reporterName, reporterLocation, reporterContact, problemDescription, new Date(), 'Pending'];
     await db.query(queries.Repairs.INSERT_PUBLIC, params);
+    
+    // Send Telegram Notification
+    sendRepairNotification({
+        assetNumber: assetNumber,
+        assetName: equipment.name,
+        problemDescription: problemDescription,
+        reporterName: reporterName,
+        reporterLocation: reporterLocation,
+        reporterContact: reporterContact
+    }).catch(console.error); // Log error if notification fails, but don't block response
+
     res.status(201).json({ message: "แจ้งซ่อมสำเร็จ! เจ้าหน้าที่จะดำเนินการตรวจสอบต่อไป" });
 }));
 
@@ -112,7 +123,7 @@ app.post('/api/register', asyncHandler(async (req, res) => {
 }));
 
 
-// --- Repair Request Routes ---
+// --- Repair Request Routes (Authenticated) ---
 app.get('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
     let sql = queries.Repairs.GET_ALL_BASE;
     const params = [];
@@ -135,7 +146,6 @@ app.get('/api/repairs/:id', authenticateToken, asyncHandler(async (req, res) => 
 }));
 
 app.post('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
-    // 1. Validate user from token
     if (!req.user || typeof req.user.id === 'undefined') {
         console.error('Authentication error: User ID not found in token payload.');
         return res.status(401).json({ message: "ข้อมูลผู้ใช้ไม่ถูกต้อง, กรุณาเข้าสู่ระบบใหม่อีกครั้ง" });
@@ -143,7 +153,6 @@ app.post('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
 
     let connection;
     try {
-        // 2. Validate request body
         const { assetNumber, problemDescription, reporterLocation, reporterContact } = req.body;
         if (!assetNumber || !problemDescription || !reporterLocation || !reporterContact) {
             return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
@@ -151,21 +160,18 @@ app.post('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
         
         connection = await db.getConnection();
 
-        // 3. Find equipment
         const [equipmentRows] = await connection.query(queries.Equipment.GET_BY_ASSET_NUMBER, [assetNumber]);
         const equipment = equipmentRows[0];
         if (!equipment) {
             return res.status(404).json({ message: `ไม่พบครุภัณฑ์หมายเลขนี้: ${assetNumber}` });
         }
 
-        // 4. Determine reporter's name, ensuring it's not null.
         const reporterName = req.user.fullName || req.user.username;
         if (!reporterName) {
             console.error('Data inconsistency: reporterName is null or undefined for userId:', req.user.id);
             return res.status(500).json({ message: 'ข้อมูลผู้ใช้ไม่สมบูรณ์ ไม่สามารถระบุชื่อผู้แจ้งซ่อมได้' });
         }
 
-        // 5. Prepare parameters for insertion
         const params = [
             equipment.id, 
             req.user.id, 
@@ -177,10 +183,18 @@ app.post('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
             'Pending'
         ];
         
-        // 6. Execute insert query
         const [result] = await connection.query(queries.Repairs.INSERT_LOGGED_IN, params);
         
-        // 7. Send success response
+        // Send Telegram Notification
+        sendRepairNotification({
+            assetNumber: assetNumber,
+            assetName: equipment.name,
+            problemDescription: problemDescription,
+            reporterName: reporterName,
+            reporterLocation: reporterLocation,
+            reporterContact: reporterContact
+        }).catch(console.error);
+
         res.status(201).json({ message: "แจ้งซ่อมสำเร็จ!", repairId: result.insertId });
 
     } catch (dbError) {
@@ -190,7 +204,6 @@ app.post('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
         if (connection) connection.release();
     }
 }));
-
 
 app.put('/api/repairs/:id', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin' && req.user.role !== 'technician') {
@@ -225,7 +238,7 @@ app.put('/api/repairs/:id', authenticateToken, asyncHandler(async (req, res) => 
 }));
 
 
-// --- Equipment Routes ---
+// --- Equipment Routes (Admin Only) ---
 app.get('/api/equipment/summary', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
@@ -324,15 +337,14 @@ app.delete('/api/equipment/:id', authenticateToken, asyncHandler(async (req, res
     res.json({ message: "ลบข้อมูลสำเร็จ", changes: result.affectedRows });
 }));
 
-// --- CSV Import/Export Routes ---
+// --- CSV Import/Export Routes (Admin Only) ---
 app.post('/api/equipment/import', authenticateToken, upload.single('csvFile'), (req, res) => {
     const filePath = req.file.path;
     const promises = [];
     fs.createReadStream(filePath)
-        .pipe(csv.parse({ headers: true, bom: true })) // Added bom: true for UTF-8 with BOM
+        .pipe(csv.parse({ headers: true, bom: true }))
         .on('error', error => {
             console.error(error);
-            // Cleanup the uploaded file
             fs.unlinkSync(filePath);
             res.status(500).json({ message: 'Error processing CSV file.' });
         })
@@ -344,7 +356,6 @@ app.post('/api/equipment/import', authenticateToken, upload.single('csvFile'), (
                 row['สถานที่'] || row.location,
                 row['สถานะ'] || row.status || 'Normal'
             ];
-            // Only push the promise if assetNumber is valid
             if (params[0]) {
                  promises.push(db.query(queries.CSV.IMPORT, params));
             }
@@ -352,12 +363,12 @@ app.post('/api/equipment/import', authenticateToken, upload.single('csvFile'), (
         .on('end', rowCount => {
             Promise.all(promises)
                 .then(() => {
-                    fs.unlinkSync(filePath); // Cleanup the uploaded file
+                    fs.unlinkSync(filePath);
                     res.json({ message: `นำเข้าข้อมูล ${promises.length} รายการสำเร็จ!` });
                 })
                 .catch(err => {
                     console.error('Import Error:', err);
-                    fs.unlinkSync(filePath); // Cleanup the uploaded file
+                    fs.unlinkSync(filePath);
                     res.status(500).json({ message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล' });
                 });
         });
@@ -369,12 +380,11 @@ app.get('/api/equipment/export', authenticateToken, asyncHandler(async (req, res
     const filename = `equipment-export-${new Date().toISOString().slice(0, 10)}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    // Add BOM for better Excel compatibility with UTF-8
     res.write('\uFEFF'); 
     csv.write(data, { headers: true }).pipe(res);
 }));
 
-// --- User Management Routes ---
+// --- User Management Routes (Admin Only) ---
 app.get('/api/users', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
     const [rows] = await db.query(queries.Users.GET_ALL);

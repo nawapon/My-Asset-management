@@ -38,7 +38,7 @@ module.exports = {
     },
     Equipment: {
         GET_DETAILS_BY_ASSET_NUMBER: `SELECT name, type, location, status FROM equipment WHERE assetNumber = ?`,
-        GET_BY_ASSET_NUMBER: `SELECT id FROM equipment WHERE assetNumber = ?`,
+        GET_BY_ASSET_NUMBER: `SELECT id, name FROM equipment WHERE assetNumber = ?`,
         GET_HISTORY_DETAILS: `SELECT * FROM equipment WHERE assetNumber = ?`,
         GET_HISTORY_REPAIRS: `
             SELECT rr.*, COALESCE(u.fullName, rr.reporterName, 'N/A') as requestUser 
@@ -88,6 +88,8 @@ module.exports = {
     Users: {
         GET_ALL: `SELECT id, fullName, username, role FROM users ORDER BY id DESC`,
         GET_BY_ID: `SELECT id, fullName, username, role FROM users WHERE id = ?`,
+        UPDATE_WITHOUT_PASSWORD: `UPDATE users SET fullName = ?, username = ?, role = ? WHERE id = ?`,
+        UPDATE_WITH_PASSWORD: `UPDATE users SET fullName = ?, username = ?, role = ?, password = ? WHERE id = ?`,
         DELETE: `DELETE FROM users WHERE id = ?`,
         CHECK_USERNAME_EXISTS: `SELECT id FROM users WHERE username = ? AND id != ?`
     }

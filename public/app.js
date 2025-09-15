@@ -98,14 +98,18 @@ $(document).ready(function() {
                 success: function(data) {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    displayMessage($message, 'เข้าสู่ระบบสำเร็จ!', true);
-                    setTimeout(() => {
-                        switch (data.user.role) {
-                            case 'admin': window.location.href = '/admin-dashboard.html'; break;
-                            case 'technician': window.location.href = '/tech-dashboard.html'; break;
-                            default: window.location.href = '/user-dashboard.html'; break;
-                        }
-                    }, 1000);
+                    
+                    $('#loginSuccessModal').modal('show');
+                    
+                    $('#loginSuccessModal').on('shown.bs.modal', function () {
+                        setTimeout(() => {
+                            switch (data.user.role) {
+                                case 'admin': window.location.href = '/admin-dashboard.html'; break;
+                                case 'technician': window.location.href = '/tech-dashboard.html'; break;
+                                default: window.location.href = '/user-dashboard.html'; break;
+                            }
+                        }, 1500); // Wait 1.5 seconds
+                    });
                 },
                 error: function(jqXHR) {
                     const errorMsg = jqXHR.responseJSON ? jqXHR.responseJSON.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
@@ -992,7 +996,36 @@ $(document).ready(function() {
             const reporterContact = $('#reporterContact').val().trim();
             
             // Enhanced client-side validation
-            if (!problemDescription || !reporterName || !reporterLocation || !reporterContact) {
+            let isValid = true;
+            if (!problemDescription) {
+                $('#problemDescription').addClass('is-invalid');
+                isValid = false;
+            } else {
+                 $('#problemDescription').removeClass('is-invalid');
+            }
+
+            if (!reporterName) {
+                $('#reporterName').addClass('is-invalid');
+                isValid = false;
+            } else {
+                $('#reporterName').removeClass('is-invalid');
+            }
+            
+            if (!reporterLocation) {
+                 $('#reporterLocation').addClass('is-invalid');
+                 isValid = false;
+            } else {
+                 $('#reporterLocation').removeClass('is-invalid');
+            }
+
+            if (!reporterContact) {
+                $('#reporterContact').addClass('is-invalid');
+                isValid = false;
+            } else {
+                $('#reporterContact').removeClass('is-invalid');
+            }
+            
+            if (!isValid) {
                 displayMessage($message, 'กรุณากรอกข้อมูลให้ครบถ้วนทุกช่อง', false);
                 return;
             }
