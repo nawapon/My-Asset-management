@@ -1,118 +1,214 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Technician Dashboard | ระบบแจ้งซ่อม</title>
-
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technician Dashboard</title>
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="hold-transition sidebar-mini tech-page">
-<div class="wrapper">
+<body class="hold-transition sidebar-mini layout-fixed tech-page">
+    <div class="wrapper">
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <button class="btn btn-danger" id="logoutButton"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button>
+                </li>
+            </ul>
+        </nav>
+        <!-- /.navbar -->
 
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <ul class="navbar-nav"><li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a></li></ul>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item"><span class="navbar-text mr-3" id="welcomeMessage"></span></li>
-      <li class="nav-item"><button id="logoutButton" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button></li>
-    </ul>
-  </nav>
-
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="#" class="brand-link"><i class="fas fa-wrench brand-image img-circle elevation-3" style="opacity: .8"></i><span class="brand-text font-weight-light">Technician Panel</span></a>
-    <div class="sidebar">
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item">
-            <a href="#" class="nav-link active">
-              <i class="nav-icon fas fa-tasks"></i><p>คิวงานช่าง</p>
+        <!-- Main Sidebar Container -->
+        <aside class="main-sidebar sidebar-dark-primary elevation-4">
+            <a href="tech-dashboard.html" class="brand-link">
+                <span class="brand-text font-weight-light">Asset Management</span>
             </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </aside>
-
-  <div class="content-wrapper">
-    <section class="content-header">
-        <div class="container-fluid">
-            <h1><i class="fas fa-tasks"></i> คิวงานช่าง</h1>
-        </div>
-    </section>
-
-    <section class="content">
-      <div class="container-fluid">
-        <div id="repair-queue-view">
-          <div class="kanban-board">
-            <div class="kanban-column">
-              <div class="kanban-column-header bg-warning">รอรับเรื่อง (Pending)</div>
-              <div class="kanban-column-body" id="pending-column"></div>
-            </div>
-            <div class="kanban-column">
-              <div class="kanban-column-header bg-primary">กำลังดำเนินการ (In Progress)</div>
-              <div class="kanban-column-body" id="inprogress-column"></div>
-            </div>
-            <div class="kanban-column">
-              <div class="kanban-column-header bg-success">ซ่อมสำเร็จ (Completed)</div>
-              <div class="kanban-column-body" id="completed-column"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-</div>
-
-<!-- Tech Repair Management Modal -->
-<div class="modal fade" id="techRepairModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-info">
-                <h5 class="modal-title" id="techRepairModalTitle">จัดการงานซ่อม</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <form id="techRepairForm">
-                    <input type="hidden" id="repairId">
-                    <h6><i class="fas fa-info-circle"></i> รายละเอียดการแจ้งซ่อม</h6>
-                    <dl class="row">
-                        <dt class="col-sm-3">เลขครุภัณฑ์:</dt><dd class="col-sm-9" id="modalAssetNumber"></dd>
-                        <dt class="col-sm-3">ผู้แจ้ง:</dt><dd class="col-sm-9" id="modalRequestUser"></dd>
-                        <dt class="col-sm-3">สถานที่/เบอร์ติดต่อ:</dt><dd class="col-sm-9" id="modalContactInfo"></dd>
-                        <dt class="col-sm-3">ปัญหาที่แจ้ง:</dt><dd class="col-sm-9" id="modalProblem"></dd>
-                        <dt class="col-sm-3">วันที่แจ้ง:</dt><dd class="col-sm-9" id="modalRequestDate"></dd>
-                    </dl>
-                    <hr>
-                    <h6><i class="fas fa-edit"></i> บันทึกการแก้ไขและอัปเดตสถานะ</h6>
-                    <div class="form-group">
-                        <label for="solutionNotes">บันทึกการซ่อม</label>
-                        <textarea id="solutionNotes" class="form-control" rows="3" placeholder="อธิบายวิธีการแก้ไขปัญหา..."></textarea>
+            <div class="sidebar">
+                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                    <div class="info">
+                        <a href="#" class="d-block" id="welcomeMessage">ยินดีต้อนรับ, ช่างเทคนิค</a>
                     </div>
-                    <div class="form-group">
-                        <label for="modalStatus">อัปเดตสถานะ</label>
-                        <select id="modalStatus" class="form-control">
-                            <option value="Pending">รอรับเรื่อง</option>
-                            <option value="In Progress">กำลังดำเนินการ</option>
-                            <option value="Completed">ซ่อมสำเร็จ</option>
-                        </select>
+                </div>
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>ภาพรวม</p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Content Wrapper. Contains page content -->
+        <div class="content-wrapper">
+            <!-- Content Header (Page header) -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">แดชบอร์ดช่างเทคนิค</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.content-header -->
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Info Boxes -->
+                    <div class="row">
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-inbox"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">รายการใหม่</span>
+                                    <span class="info-box-number" id="pending-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-info elevation-1"><i class="fas fa-tools"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">กำลังดำเนินการ</span>
+                                    <span class="info-box-number" id="inprogress-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-4">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">ซ่อมสำเร็จวันนี้</span>
+                                    <span class="info-box-number" id="completed-today-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /.row -->
+
+                    <!-- Main Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">รายการแจ้งซ่อมทั้งหมด</h3>
+                            <div class="card-tools">
+                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                    <label class="btn btn-sm btn-default active" data-filter="All">
+                                        <input type="radio" name="options" autocomplete="off" checked> ทั้งหมด
+                                    </label>
+                                    <label class="btn btn-sm btn-default" data-filter="Pending">
+                                        <input type="radio" name="options" autocomplete="off"> ใหม่
+                                    </label>
+                                    <label class="btn btn-sm btn-default" data-filter="In Progress">
+                                        <input type="radio" name="options" autocomplete="off"> กำลังทำ
+                                    </label>
+                                    <label class="btn btn-sm btn-default" data-filter="Completed">
+                                        <input type="radio" name="options" autocomplete="off"> สำเร็จ
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.card-header -->
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 10%;">เลขครุภัณฑ์</th>
+                                            <th style="width: 10%;">ปัญหาที่แจ้ง</th>
+                                            <th style="width: 10%;">สถานที่</th>
+                                            <th style="width: 10%;">ติดต่อ</th>
+                                            <th style="width: 10%;">ผู้แจ้ง</th>
+                                            <th style="width: 10%;">วันที่แจ้ง</th>
+                                            <th style="width: 10%;">ระยะเวลาซ่อม</th>
+                                            <th style="width: 10%;" class="text-center">สถานะ</th>
+                                            <th style="width: 10%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tech-repair-table-body">
+                                        <!-- Rows will be dynamically inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- /.card-body -->
+                    </div>
+                    <!-- /.card -->
+                </div>
+            </section>
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+
+        <!-- Control Sidebar -->
+        <aside class="control-sidebar control-sidebar-dark">
+            <!-- Control sidebar content goes here -->
+        </aside>
+        <!-- /.control-sidebar -->
+    </div>
+    <!-- ./wrapper -->
+
+    <!-- Tech Repair Modal -->
+    <div class="modal fade" id="techRepairModal" tabindex="-1" role="dialog" aria-labelledby="techRepairModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="techRepairModalLabel">จัดการรายการซ่อม</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="techRepairForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="repairId">
+                        <h6><strong>เลขครุภัณฑ์:</strong> <span id="modalAssetNumber"></span></h6>
+                        <p><strong>ผู้แจ้ง:</strong> <span id="modalRequestUser"></span></p>
+                        <p><strong>ติดต่อ:</strong> <span id="modalContactInfo"></span></p>
+                        <p><strong>วันที่แจ้ง:</strong> <span id="modalRequestDate"></span></p>
+                        <p><strong>ปัญหา:</strong> <span id="modalProblem"></span></p>
+                        <hr>
+                        <div class="form-group">
+                            <label for="solutionNotes">บันทึกการแก้ไข</label>
+                            <textarea class="form-control" id="solutionNotes" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="modalStatus">เปลี่ยนสถานะ</label>
+                            <select class="form-control" id="modalStatus">
+                                <option value="Pending">รายการใหม่ (Pending)</option>
+                                <option value="In Progress">กำลังดำเนินการ (In Progress)</option>
+                                <option value="Completed">ซ่อมสำเร็จ (Completed)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-default" data-dismiss="modal">ปิด</button>
-                <button type="submit" form="techRepairForm" class="btn btn-info"><i class="fas fa-save"></i> บันทึกการเปลี่ยนแปลง</button>
-            </div>
         </div>
     </div>
-</div>
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-<script src="app.js"></script>
+    <!-- REQUIRED SCRIPTS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
 

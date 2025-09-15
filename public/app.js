@@ -407,38 +407,93 @@ $(document).ready(function() {
     if ($('body.tech-page').length) {
         const $techRepairModal = $('#techRepairModal');
         let modalTrigger = null;
-        
-        const fetchAndRenderQueue = () => {
-            const $pendingCol = $('#pending-column').empty();
-            const $inprogressCol = $('#inprogress-column').empty();
-            const $completedCol = $('#completed-column').empty();
+        let allRepairsData = []; // To store all data for filtering
+        let currentFilter = 'All';
+    
+        const updateSummaryBoxes = () => {
+            const pendingCount = allRepairsData.filter(r => r.status === 'Pending').length;
+            const inProgressCount = allRepairsData.filter(r => r.status === 'In Progress').length;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+    
+            const completedTodayCount = allRepairsData.filter(r => {
+                if (r.status !== 'Completed' || !r.completedDate) return false;
+                const completedDate = new Date(r.completedDate);
+                completedDate.setHours(0, 0, 0, 0);
+                return completedDate.getTime() === today.getTime();
+            }).length;
+    
+            $('#pending-count').text(pendingCount);
+            $('#inprogress-count').text(inProgressCount);
+            $('#completed-today-count').text(completedTodayCount);
+        };
+    
+        const renderTable = () => {
+            const $tableBody = $('#tech-repair-table-body');
+            $tableBody.empty();
+            
+            const filteredData = (currentFilter === 'All') 
+                ? allRepairsData 
+                : allRepairsData.filter(r => r.status === currentFilter);
+    
+            if (filteredData.length === 0) {
+                $tableBody.append('<tr><td colspan="7" class="text-center">ไม่พบรายการ</td></tr>');
+                return;
+            }
+    
+            filteredData.forEach(r => {
+                const statusBadge = {
+                    "Pending": "badge-warning", 
+                    "In Progress": "badge-info", 
+                    "Completed": "badge-success"
+                };
 
+                const duration = formatDuration(r.acceptedDate, r.completedDate);
+
+                const row = `
+                    <tr>
+                        <td>${r.assetNumber}</td>
+                        <td>${r.problemDescription}</td>
+                        <td>${r.reporterLocation}</td>
+                        <td>${r.reporterContact}</td>
+                        <td>${r.requestUser}</td>
+                        <td>${formatDateTime(r.requestDate)}</td>
+                        <td>${duration}</td>
+                        <td class="text-center"><span class="badge ${statusBadge[r.status] || 'badge-secondary'}">${r.status}</span></td>
+                        <td class="text-right">
+                            <button class="btn btn-primary btn-sm manage-repair-btn" data-id="${r.id}">
+                                <i class="fas fa-edit"></i> จัดการ
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                $tableBody.append(row);
+            });
+        };
+    
+        const fetchData = () => {
             $.ajax({
-                url: '/api/repairs', method: 'GET',
+                url: '/api/repairs',
+                method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
                 success: function(repairs) {
-                    repairs.forEach(r => {
-                        const contactInfo = `${r.reporterLocation || ''} (${r.reporterContact || '-'})`;
-                        const card = `
-                            <div class="kanban-card manage-repair-btn" data-id="${r.id}">
-                                <div class="kanban-card-title">${r.assetNumber}</div>
-                                <div class="kanban-card-meta">
-                                    <span><i class="far fa-user"></i> ${r.requestUser}</span><br>
-                                    <span><i class="far fa-building"></i> ${contactInfo}</span><br>
-                                    <span><i class="far fa-calendar-alt"></i> ${formatDateTime(r.requestDate)}</span>
-                                </div>
-                                <p class="kanban-card-problem">${r.problemDescription}</p>
-                            </div>
-                        `;
-                        if (r.status === 'Pending') $pendingCol.append(card);
-                        else if (r.status === 'In Progress') $inprogressCol.append(card);
-                        else if (r.status === 'Completed') $completedCol.append(card);
-                    });
+                    allRepairsData = repairs.sort((a, b) => new Date(b.requestDate) - new Date(a.requestDate));
+                    updateSummaryBoxes();
+                    renderTable();
                 }
             });
         };
-
-        $('.content-wrapper').on('click', '.manage-repair-btn', function(e) {
+    
+        // Filter button logic
+        $('.btn-group-toggle .btn').on('click', function() {
+            currentFilter = $(this).data('filter');
+            // 'active' class is handled by bootstrap's data-toggle="buttons"
+            renderTable();
+        });
+    
+        // Modal opening logic (delegated)
+        $('#tech-repair-table-body').on('click', '.manage-repair-btn', function(e) {
             modalTrigger = e.currentTarget;
             const repairId = $(this).data('id');
             $.ajax({
@@ -458,7 +513,8 @@ $(document).ready(function() {
                 }
             });
         });
-
+    
+        // Modal form submission logic
         $('#techRepairForm').on('submit', function(e) {
             e.preventDefault();
             const repairId = $('#repairId').val();
@@ -471,13 +527,13 @@ $(document).ready(function() {
                 data: JSON.stringify({ status: newStatus, solutionNotes: solutionNotes }),
                 success: function() {
                     $techRepairModal.modal('hide');
-                    alert('บันทึกการเปลี่ยนแปลงสำเร็จ!');
-                    fetchAndRenderQueue();
+                    fetchData(); // Refresh data after update
                 },
                 error: function() { alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล'); }
             });
         });
-
+    
+        // Focus management on modal close
         $('.modal').on('hidden.bs.modal', function () {
             if (modalTrigger) {
                 $(modalTrigger).focus();
@@ -485,7 +541,8 @@ $(document).ready(function() {
             }
         });
         
-        fetchAndRenderQueue();
+        // Initial Load
+        fetchData();
     }
     
     // --- Admin Dashboard Logic ---
