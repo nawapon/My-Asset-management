@@ -34,7 +34,7 @@ module.exports = {
             INSERT INTO repair_requests 
             (equipmentId, userId, reporterName, reporterLocation, reporterContact, problemDescription, requestDate, status) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        UPDATE_STATUS: `UPDATE repair_requests SET status = ? WHERE id = ?`
+        DELETE: `DELETE FROM repair_requests WHERE id = ?`
     },
     Equipment: {
         GET_DETAILS_BY_ASSET_NUMBER: `SELECT name, type, location, status FROM equipment WHERE assetNumber = ?`,
@@ -74,7 +74,6 @@ module.exports = {
         }
     },
     CSV: {
-        // MariaDB/MySQL "UPSERT" syntax
         IMPORT: `
             INSERT INTO equipment (assetNumber, name, type, location, status) 
             VALUES (?, ?, ?, ?, ?)
@@ -92,6 +91,17 @@ module.exports = {
         UPDATE_WITH_PASSWORD: `UPDATE users SET fullName = ?, username = ?, role = ?, password = ? WHERE id = ?`,
         DELETE: `DELETE FROM users WHERE id = ?`,
         CHECK_USERNAME_EXISTS: `SELECT id FROM users WHERE username = ? AND id != ?`
+    },
+    PasswordResets: {
+        INSERT_REQUEST: `INSERT INTO password_resets (userId, requestDate, status) VALUES (?, ?, 'pending')`,
+        GET_PENDING_REQUESTS: `
+            SELECT pr.id, pr.requestDate, u.id as userId, u.username 
+            FROM password_resets pr
+            JOIN users u ON pr.userId = u.id
+            WHERE pr.status = 'pending'
+            ORDER BY pr.requestDate ASC`,
+        UPDATE_REQUEST_STATUS: `UPDATE password_resets SET status = ? WHERE userId = ? AND status = 'pending'`,
+        DELETE_COMPLETED: `DELETE FROM password_resets WHERE status = 'completed'`
     }
 };
 

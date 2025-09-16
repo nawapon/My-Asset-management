@@ -123,6 +123,39 @@ app.post('/api/register', asyncHandler(async (req, res) => {
     res.status(201).json({ message: "สมัครสมาชิกสำเร็จ!", userId: result.insertId });
 }));
 
+// --- Password Reset Routes ---
+app.post('/api/request-password-reset', asyncHandler(async (req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ message: "กรุณากรอกชื่อผู้ใช้" });
+    }
+    const [rows] = await db.query(queries.Auth.GET_BY_USERNAME, [username]);
+    const user = rows[0];
+
+    if (!user) {
+        return res.status(404).json({ message: "ไม่พบผู้ใช้งานนี้ในระบบ" });
+    }
+
+    await db.query(queries.PasswordResets.INSERT_REQUEST, [user.id, new Date()]);
+    res.json({ message: "ส่งคำขอรีเซ็ตรหัสผ่านสำเร็จแล้ว กรุณารอผู้ดูแลระบบดำเนินการ" });
+}));
+
+app.get('/api/password-reset-requests', authenticateToken, asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
+    const [requests] = await db.query(queries.PasswordResets.GET_PENDING_REQUESTS);
+    res.json(requests);
+}));
+
+app.delete('/api/password-reset-requests/completed', authenticateToken, asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
+    await db.query(queries.PasswordResets.DELETE_COMPLETED);
+    res.json({ message: "ล้างคำขอที่สำเร็จแล้วเรียบร้อย" });
+}));
+
 
 // --- Repair Request Routes ---
 app.get('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
@@ -136,6 +169,19 @@ app.get('/api/repairs', authenticateToken, asyncHandler(async (req, res) => {
     const [rows] = await db.query(sql, params);
     res.json(rows);
 }));
+
+app.delete('/api/repairs/:id', authenticateToken, asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
+    const { id } = req.params;
+    const [result] = await db.query(queries.Repairs.DELETE, [id]);
+    if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "ไม่พบใบงานที่ต้องการลบ" });
+    }
+    res.json({ message: "ลบใบงานแจ้งซ่อมสำเร็จ" });
+}));
+
 
 app.get('/api/repairs/:id', authenticateToken, asyncHandler(async (req, res) => {
     if (req.user.role !== 'admin' && req.user.role !== 'technician') {
@@ -285,6 +331,15 @@ app.get('/api/equipment/history/:assetNumber', authenticateToken, asyncHandler(a
     
     const [history] = await db.query(queries.Equipment.GET_HISTORY_REPAIRS, [equipment.id]);
     res.json({ details: equipment, history: history });
+}));
+
+// New route to get all equipment for printing QR codes
+app.get('/api/equipment/all', authenticateToken, asyncHandler(async (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "ไม่มีสิทธิ์ดำเนินการ" });
+    }
+    const [rows] = await db.query(queries.Equipment.GET_ALL_BASE + " ORDER BY id DESC");
+    res.json(rows);
 }));
 
 app.get('/api/equipment', authenticateToken, asyncHandler(async (req, res) => {
@@ -442,20 +497,28 @@ app.put('/api/users/:id', authenticateToken, asyncHandler(async (req, res) => {
     if (existingUsers.length > 0) {
         return res.status(409).json({ message: "ชื่อผู้ใช้นี้มีคนใช้แล้ว" });
     }
+    
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
 
-    if (password && password.length > 0) {
-        const hash = await bcrypt.hash(password, 10);
-        const [result] = await db.query(queries.Users.UPDATE_WITH_PASSWORD, [fullName, username, role, hash, id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "ไม่พบผู้ใช้งานที่ต้องการอัปเดต" });
+        if (password && password.length > 0) {
+            const hash = await bcrypt.hash(password, 10);
+            await connection.query(queries.Users.UPDATE_WITH_PASSWORD, [fullName, username, role, hash, id]);
+            // After successfully changing the password, update the reset request status
+            await connection.query(queries.PasswordResets.UPDATE_REQUEST_STATUS, ['completed', id]);
+        } else {
+            await connection.query(queries.Users.UPDATE_WITHOUT_PASSWORD, [fullName, username, role, id]);
         }
+        
+        await connection.commit();
         res.json({ message: "อัปเดตข้อมูลผู้ใช้สำเร็จ" });
-    } else {
-        const [result] = await db.query(queries.Users.UPDATE_WITHOUT_PASSWORD, [fullName, username, role, id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "ไม่พบผู้ใช้งานที่ต้องการอัปเดต" });
-        }
-        res.json({ message: "อัปเดตข้อมูลผู้ใช้สำเร็จ" });
+
+    } catch (err) {
+        await connection.rollback();
+        throw err; // Let the asyncHandler catch it
+    } finally {
+        connection.release();
     }
 }));
 
@@ -480,7 +543,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });
 

@@ -147,6 +147,29 @@ $(document).ready(function() {
         });
     }
 
+    // --- Forgot Password Page Logic ---
+    if ($('body.forgot-password-page').length) {
+        $('#forgotPasswordForm').on('submit', function(e) {
+            e.preventDefault();
+            const username = $('#username').val();
+            const $message = $('#message');
+            $.ajax({
+                url: '/api/request-password-reset',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ username }),
+                success: function(response) {
+                    $('#forgotPasswordForm').hide();
+                    displayMessage($message, response.message, true);
+                },
+                error: function(jqXHR) {
+                    const errorMsg = jqXHR.responseJSON ? jqXHR.responseJSON.message : 'เกิดข้อผิดพลาด';
+                    displayMessage($message, errorMsg, false);
+                }
+            });
+        });
+    }
+
     // --- General Dashboard Logic (Logout, Welcome Message, Sidebar) ---
     if ($('body.sidebar-mini').length) {
         if (!token || !user) {
@@ -556,6 +579,7 @@ $(document).ready(function() {
         // Set initial view
         $('#dashboard-view').addClass('active').show();
         $('#equipment-view').removeClass('active').hide();
+        $('#repairs-view').removeClass('active').hide();
         $('#users-view').removeClass('active').hide();
         
         let statusChartInstance, typeBarChartInstance, typePieChartInstance, avgTimeChartInstance;
@@ -681,9 +705,9 @@ $(document).ready(function() {
                                 <td>${item.location || ''}</td>
                                 <td><span class="badge ${statusBadge[item.status] || 'badge-secondary'}">${item.status}</span></td>
                                 <td class="action-cell-admin">
-                                    <button class="btn btn-primary btn-sm details-btn" data-assetnumber="${item.assetNumber}" title="ดูรายละเอียด"><i class="fas fa-eye"></i></button>
-                                    <button class="btn btn-warning btn-sm edit-btn" data-id="${item.id}" title="แก้ไข"><i class="fas fa-pencil-alt"></i></button>
-                                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                                    <button class="btn btn-primary btn-sm-3 details-btn" data-assetnumber="${item.assetNumber}" title="ดูรายละเอียด"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-warning btn-sm-3 edit-btn" data-id="${item.id}" title="แก้ไข"><i class="fas fa-pencil-alt"></i></button>
+                                    <button class="btn btn-danger btn-sm-3 delete-btn" data-id="${item.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
                                 </td>
                             </tr>`;
                         const $row = $(row);
@@ -723,6 +747,30 @@ $(document).ready(function() {
             if (!$(this).parent().hasClass('disabled')) fetchEquipment($(this).data('page'));
         });
         
+        $('#detailsHistoryTableBody').on('click', '.delete-repair-btn', function() {
+            const repairId = $(this).data('id');
+            const assetNumber = $('#detailsAssetNumber').text();
+            if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบใบงานแจ้งซ่อม ID: ${repairId}?`)) {
+                $.ajax({
+                    url: `/api/repairs/${repairId}`,
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    success: function(response) {
+                        alert(response.message);
+                        // Refresh the history table in the modal
+                        const detailsBtn = $(`.details-btn[data-assetnumber="${assetNumber}"]`);
+                        if (detailsBtn.length) {
+                            detailsBtn.click(); // Re-trigger the details modal to show updated history
+                        }
+                    },
+                    error: function(jqXHR) {
+                        alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถลบใบงานได้'));
+                    }
+                });
+            }
+        });
+
+
         $equipmentTableBody.on('click', 'button', function(e) {
             const $btn = $(this);
             modalTrigger = e.currentTarget;
@@ -744,6 +792,7 @@ $(document).ready(function() {
                         const $historyBody = $('#detailsHistoryTableBody').empty();
                         if (history.length > 0) {
                             history.forEach(item => {
+                                const deleteButton = `<button class="btn btn-danger btn-xs delete-repair-btn" data-id="${item.id}" title="ลบใบงาน"><i class="fas fa-trash-alt"></i></button>`;
                                 $historyBody.append(`<tr>
                                     <td>${formatDateTime(item.requestDate)}</td>
                                     <td>${item.requestUser}</td>
@@ -751,11 +800,12 @@ $(document).ready(function() {
                                     <td>${formatDateTime(item.acceptedDate)}</td>
                                     <td>${formatDateTime(item.completedDate)}</td>
                                     <td>${formatDuration(item.acceptedDate, item.completedDate)}</td>
-                                    <td>${item.status}</td>
+                                    <td><span class="badge badge-info">${item.status}</span></td>
+                                    <td>${deleteButton}</td>
                                 </tr>`);
                             });
                         } else {
-                            $historyBody.append('<tr><td colspan="7" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
+                            $historyBody.append('<tr><td colspan="8" class="text-center">ไม่พบประวัติการซ่อม</td></tr>');
                         }
                         const $qrContainer = $('#detailsModalQrCode').empty();
                         const qrUrl = `${baseUrl}/scan-and-repair.html?asset=${assetNumber}`;
@@ -929,6 +979,7 @@ $(document).ready(function() {
                     $userModal.modal('hide');
                     alert(response.message);
                     fetchUsers();
+                    fetchPasswordResetRequests(); // Refresh notifications
                 },
                 error: function(jqXHR) {
                     alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถบันทึกข้อมูลผู้ใช้ได้'));
@@ -946,6 +997,169 @@ $(document).ready(function() {
                 });
             }
         });
+        
+        const fetchAdminRepairs = () => {
+            $.ajax({
+                url: '/api/repairs',
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(repairs) {
+                    const $tableBody = $('#adminRepairsTableBody').empty();
+                    if (repairs.length === 0) {
+                        $tableBody.append('<tr><td colspan="6" class="text-center">ไม่พบรายการแจ้งซ่อม</td></tr>');
+                        return;
+                    }
+                    repairs.forEach(r => {
+                        const statusBadge = {"Pending": "badge-warning", "In Progress": "badge-info", "Completed": "badge-success"};
+                        const row = `
+                            <tr>
+                                <td>${r.assetNumber}</td>
+                                <td>${r.problemDescription}</td>
+                                <td>${r.requestUser}</td>
+                                <td>${formatDateTime(r.requestDate)}</td>
+                                <td><span class="badge ${statusBadge[r.status] || 'badge-secondary'}">${r.status}</span></td>
+                                <td class="text-right">
+                                    <button class="btn btn-primary btn-sm edit-repair-btn" data-id="${r.id}" title="จัดการ"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-danger btn-sm delete-repair-btn" data-id="${r.id}" title="ลบ"><i class="fas fa-trash-alt"></i></button>
+                                </td>
+                            </tr>`;
+                        $tableBody.append(row);
+                    });
+                }
+            });
+        };
+
+        $('#adminRepairsTableBody').on('click', '.edit-repair-btn', function(e) {
+            modalTrigger = e.currentTarget;
+            const repairId = $(this).data('id');
+            $.ajax({
+                url: `/api/repairs/${repairId}`,
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(data) {
+                    $('#adminRepairId').val(data.id);
+                    $('#adminModalAssetNumber').text(data.assetNumber);
+                    $('#adminModalRequestUser').text(data.requestUser);
+                    $('#adminModalContactInfo').text(`${data.reporterLocation || ''} (${data.reporterContact || '-'})`);
+                    $('#adminModalProblem').text(data.problemDescription);
+                    $('#adminModalRequestDate').text(formatDateTime(data.requestDate));
+                    $('#adminSolutionNotes').val(data.solutionNotes || '');
+                    $('#adminModalStatus').val(data.status);
+                    $('#adminRepairModal').modal('show');
+                }
+            });
+        });
+
+        $('#adminRepairsTableBody').on('click', '.delete-repair-btn', function() {
+            const repairId = $(this).data('id');
+            if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบใบงานแจ้งซ่อม ID: ${repairId}?`)) {
+                $.ajax({
+                    url: `/api/repairs/${repairId}`,
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    success: function(response) {
+                        alert(response.message);
+                        fetchAdminRepairs(); // Refresh the table
+                    },
+                    error: function(jqXHR) {
+                        alert('เกิดข้อผิดพลาด: ' + (jqXHR.responseJSON?.message || 'ไม่สามารถลบใบงานได้'));
+                    }
+                });
+            }
+        });
+
+        $('#adminRepairForm').on('submit', function(e) {
+            e.preventDefault();
+            const repairId = $('#adminRepairId').val();
+            const data = {
+                status: $('#adminModalStatus').val(),
+                solutionNotes: $('#adminSolutionNotes').val()
+            };
+            $.ajax({
+                url: `/api/repairs/${repairId}`,
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` },
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function() {
+                    $('#adminRepairModal').modal('hide');
+                    fetchAdminRepairs();
+                },
+                error: function() {
+                    alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            });
+        });
+        
+        const fetchPasswordResetRequests = () => {
+            $.ajax({
+                url: '/api/password-reset-requests',
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                success: function(requests) {
+                    const count = requests.length;
+                    $('#reset-request-count').text(count);
+                    $('#reset-request-header-count').text(count);
+
+                    const $list = $('#reset-request-list').empty();
+                    if (count === 0) {
+                        $list.append('<a href="#" class="dropdown-item">ไม่มีคำขอใหม่</a>');
+                        return;
+                    }
+                    requests.forEach(req => {
+                        $list.append(`
+                            <a href="#" class="dropdown-item reset-request-item" data-user-id="${req.userId}">
+                                <i class="fas fa-user mr-2"></i> ${req.username}
+                                <span class="float-right text-muted text-sm">${new Date(req.requestDate).toLocaleTimeString('th-TH')}</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                        `);
+                    });
+                }
+            });
+        };
+
+        $('#reset-request-list').on('click', '.reset-request-item', function(e) {
+            e.preventDefault();
+            const userId = $(this).data('user-id');
+            const userData = window.allUsersData.find(u => u.id === userId);
+            
+            if (userData) {
+                // Navigate to the user management tab first
+                $('.nav-link[data-target="#users-view"]').click();
+                
+                // Then open the modal
+                $('#userModalTitle').text('รีเซ็ตรหัสผ่านสำหรับ: ' + userData.username);
+                $('#userId').val(userData.id);
+                $('#userFullName').val(userData.fullName);
+                $('#userUsername').val(userData.username);
+                $('#userRole').val(userData.role);
+                $('#userPassword').val('').attr('placeholder', 'กรอกรหัสผ่านใหม่').prop('required', true);
+                $('#userConfirmPassword').val('').attr('placeholder', 'ยืนยันรหัสผ่านใหม่').prop('required', true);
+                $userModal.modal('show');
+            } else {
+                alert('ไม่พบข้อมูลผู้ใช้');
+            }
+        });
+
+        $('#clear-completed-requests-btn').on('click', function(e) {
+            e.preventDefault();
+            if (confirm('คุณต้องการล้างคำขอที่จัดการเสร็จสิ้นแล้วทั้งหมดใช่หรือไม่?')) {
+                 $.ajax({
+                    url: '/api/password-reset-requests/completed',
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    success: function() {
+                        alert('ล้างข้อมูลสำเร็จ');
+                        fetchPasswordResetRequests();
+                    },
+                    error: function() {
+                        alert('เกิดข้อผิดพลาดในการล้างข้อมูล');
+                    }
+                });
+            }
+        });
+
         
         $('#csvFile').on('change', function() {
             const fileName = $(this).val().split('\\').pop();
@@ -1002,6 +1216,8 @@ $(document).ready(function() {
         fetchDashboardData();
         fetchEquipment();
         fetchUsers();
+        fetchAdminRepairs();
+        fetchPasswordResetRequests();
     }
 
     // --- Scan and Repair Page Logic ---

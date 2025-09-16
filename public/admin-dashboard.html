@@ -1,247 +1,601 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Panel | จัดการครุภัณฑ์</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ระบบแจ้งซ่อมครุภัณฑ์</title>
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- AdminLTE style -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- Ekko Lightbox -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="hold-transition sidebar-mini admin-page">
 <div class="wrapper">
 
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <ul class="navbar-nav"><li class="nav-item"><a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a></li></ul>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item"><span class="navbar-text mr-3" id="welcomeMessage"></span></li>
-      <li class="nav-item"><button id="logoutButton" class="btn btn-danger btn-sm"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</button></li>
-    </ul>
-  </nav>
-
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="#" class="brand-link"><i class="fas fa-shield-alt brand-image img-circle elevation-3" style="opacity: .8"></i><span class="brand-text font-weight-light">Admin Panel</span></a>
-    <div class="sidebar">
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item">
-            <a href="#" class="nav-link active" data-target="#dashboard-view">
-              <i class="nav-icon fas fa-tachometer-alt"></i><p>ภาพรวม (Dashboard)</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-target="#equipment-view">
-              <i class="nav-icon fas fa-desktop"></i><p>จัดการครุภัณฑ์</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-target="#users-view">
-              <i class="nav-icon fas fa-users-cog"></i><p>จัดการผู้ใช้งาน</p>
-            </a>
-          </li>
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
         </ul>
-      </nav>
-    </div>
-  </aside>
 
-  <div class="content-wrapper">
-    <section class="content pt-3">
-      <div class="container-fluid">
+        <!-- Right navbar links -->
+        <ul class="navbar-nav ml-auto">
+            <!-- Password Reset Notifications Dropdown Menu -->
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#">
+                    <i class="far fa-bell fa-2x"></i>
+                    <span class="badge badge-danger navbar-badge" id="reset-request-count">0</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                    <span class="dropdown-item dropdown-header"><span id="reset-request-header-count">0</span> คำขอรีเซ็ตรหัสผ่าน</span>
+                    <div class="dropdown-divider"></div>
+                    <div id="reset-request-list">
+                        <!-- Requests will be populated here by app.js -->
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item dropdown-footer" id="clear-completed-requests-btn">ล้างคำขอที่สำเร็จแล้ว</a>
+                </div>
+            </li>
 
+            <!-- Logout Link -->
+            <li class="nav-item">
+                <a class="btn btn-danger" href="#" id="logoutButton">
+                    <i class="fas fa-sign-out-alt"></i>
+                    ออกจากระบบ
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <!-- /.navbar -->
+
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <!-- Brand Logo -->
+        <a href="#" class="brand-link">
+            <i class="nav-icon fas fa-cogs ml-3 mr-2"></i>
+            <span class="brand-text font-weight-light">Admin Panel</span>
+        </a>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Sidebar user panel (optional) -->
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                <div class="info">
+                    <a href="#" class="d-block" id="welcomeMessage">ยินดีต้อนรับ, Admin</a>
+                </div>
+            </div>
+
+            <!-- Sidebar Menu -->
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-target="#dashboard-view">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>ภาพรวมระบบ</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-target="#equipment-view">
+                            <i class="nav-icon fas fa-desktop"></i>
+                            <p>จัดการครุภัณฑ์</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-target="#repairs-view">
+                             <i class="nav-icon fas fa-tools"></i>
+                            <p>รายการแจ้งซ่อม</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-target="#users-view">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>จัดการผู้ใช้งาน</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <!-- /.sidebar-menu -->
+        </div>
+        <!-- /.sidebar -->
+    </aside>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
         <!-- Dashboard View -->
         <div id="dashboard-view" class="content-section active">
-          <div class="row">
-            <div class="col-12 col-sm-6 col-md-3"><div class="info-box"><span class="info-box-icon bg-info elevation-1"><i class="fas fa-desktop"></i></span><div class="info-box-content"><span class="info-box-text">ครุภัณฑ์ทั้งหมด</span><span class="info-box-number" id="total-assets">0</span></div></div></div>
-            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span><div class="info-box-content"><span class="info-box-text">สถานะปกติ</span><span class="info-box-number" id="normal-status">0</span></div></div></div>
-            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-warning elevation-1"><i class="fas fa-tools"></i></span><div class="info-box-content"><span class="info-box-text">กำลังซ่อม</span><span class="info-box-number" id="repair-status">0</span></div></div></div>
-            <div class="col-12 col-sm-6 col-md-3"><div class="info-box mb-3"><span class="info-box-icon bg-danger elevation-1"><i class="fas fa-times-circle"></i></span><div class="info-box-content"><span class="info-box-text">จำหน่าย</span><span class="info-box-number" id="disposed-status">0</span></div></div></div>
-          </div>
-          <div class="row">
-            <div class="col-md-6"><div class="info-box mb-3 bg-secondary"><span class="info-box-icon"><i class="fas fa-stopwatch"></i></span><div class="info-box-content"><span class="info-box-text">เวลาตอบสนองเฉลี่ย</span><span class="info-box-number" id="avg-response-time">-</span></div></div></div>
-            <div class="col-md-6"><div class="info-box mb-3 bg-purple"><span class="info-box-icon"><i class="fas fa-hourglass-half"></i></span><div class="info-box-content"><span class="info-box-text">เวลาซ่อมเฉลี่ย</span><span class="info-box-number" id="avg-resolution-time">-</span></div></div></div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="card card-danger"><div class="card-header"><h3 class="card-title">สรุปตามสถานะ</h3></div><div class="card-body"><canvas id="statusChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
-              <div class="card card-info"><div class="card-header"><h3 class="card-title">5 ประเภทครุภัณฑ์ที่ซ่อมนานที่สุด (เฉลี่ย)</h3></div><div class="card-body"><canvas id="avgTimeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
-            </div>
-            <div class="col-md-6">
-              <div class="card card-success"><div class="card-header"><h3 class="card-title">5 ประเภทครุภัณฑ์ที่เยอะที่สุด</h3></div><div class="card-body"><canvas id="typeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
-              <div class="card card-primary"><div class="card-header"><h3 class="card-title">ประเภทครุภัณฑ์ทั้งหมด</h3></div><div class="card-body"><canvas id="equipmentTypeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas></div></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Equipment View -->
-        <div id="equipment-view" class="content-section" style="display: none;">
-          <div class="card card-primary card-outline">
-            <div class="card-header">
-              <h3 class="card-title">รายการครุภัณฑ์คอมพิวเตอร์</h3>
-              <div class="card-tools d-flex align-items-center">
-                <form id="searchForm" class="d-inline-block">
-                  <div class="input-group input-group-sm" style="width: 250px;">
-                    <input type="text" id="searchInput" class="form-control float-right" placeholder="ค้นหาเลขครุภัณฑ์, ชื่อ...">
-                    <div class="input-group-append">
-                      <button type="submit" class="btn btn-default"><i class="fas fa-search"></i></button>
+            <!-- Content Header (Page header) -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">ภาพรวมระบบ</h1>
+                        </div>
                     </div>
-                  </div>
-                </form>
-                <button type="button" id="resetSearchBtn" class="btn btn-secondary btn-sm ml-2" style="display: none;"><i class="fas fa-times"></i> ล้างการค้นหา</button>
-              </div>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-end mb-3">
-                    <button id="printQrBtn" class="btn btn-info btn-sm mr-2"><i class="fas fa-print"></i> พิมพ์ QR Code</button>
-                    <button id="addEquipmentBtn" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> เพิ่มครุภัณฑ์</button>
                 </div>
-              <table id="equipmentTable" class="table table-bordered table-hover">
-                <thead><tr><th style="width: 50px;">QR Code</th><th>เลขครุภัณฑ์</th><th>ชื่ออุปกรณ์</th><th>ประเภท</th><th>สถานที่</th><th>สถานะ</th><th style="width: 150px;">จัดการ</th></tr></thead>
-                <tbody id="equipmentTableBody"></tbody>
-              </table>
             </div>
-            <div class="card-footer clearfix"><div id="pagination-controls"></div></div>
-          </div>
-          <div class="card">
-            <div class="card-header"><h3 class="card-title">นำเข้า / ส่งออกข้อมูล</h3></div>
-            <div class="card-body">
-                <div class="io-actions">
-                    <div class="import-group"><label for="csvFile" class="btn btn-info btn-sm mb-0"><i class="fas fa-file-upload"></i> เลือกไฟล์ CSV</label><input type="file" id="csvFile" name="csvFile" accept=".csv" class="d-none"><span id="csvFileName" class="text-muted">ยังไม่ได้เลือกไฟล์</span><button id="importBtn" class="btn btn-secondary btn-sm"><i class="fas fa-file-import"></i> อัปโหลด</button></div>
-                    <div class="export-group"><button id="exportBtn" class="btn btn-success btn-sm"><i class="fas fa-file-export"></i> ส่งออกข้อมูล</button></div>
+            <!-- /.content-header -->
+
+            <!-- Main content -->
+            <div class="content">
+                <div class="container-fluid">
+                     <!-- Info boxes -->
+                    <div class="row">
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="info-box">
+                                <span class="info-box-icon bg-info elevation-1"><i class="fas fa-desktop"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">ครุภัณฑ์ทั้งหมด</span>
+                                    <span class="info-box-number" id="total-assets">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-success elevation-1"><i class="fas fa-check-circle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">สถานะปกติ</span>
+                                    <span class="info-box-number" id="normal-status">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clearfix hidden-md-up"></div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-tools"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">กำลังซ่อม</span>
+                                    <span class="info-box-number" id="repair-status">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="info-box mb-3">
+                                <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-times-circle"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">จำหน่าย</span>
+                                    <span class="info-box-number" id="disposed-status">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <!-- Time summary -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-box mb-3 bg-primary">
+                                <span class="info-box-icon"><i class="fas fa-history"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">เวลาตอบสนองเฉลี่ย</span>
+                                    <span class="info-box-number" id="avg-response-time">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-box mb-3 bg-maroon">
+                                <span class="info-box-icon"><i class="fas fa-hourglass-end"></i></span>
+                                <div class="info-box-content">
+                                    <span class="info-box-text">เวลาซ่อมเฉลี่ย</span>
+                                    <span class="info-box-number" id="avg-resolution-time">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Charts -->
+                    <div class="row">
+                        <div class="col-md-6">
+                             <div class="card card-danger">
+                                <div class="card-header">
+                                    <h3 class="card-title">สรุปตามสถานะ</h3>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="statusChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                            <div class="card card-info">
+                                <div class="card-header">
+                                    <h3 class="card-title">ประเภทครุภัณฑ์</h3>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="equipmentTypeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                             <div class="card card-success">
+                                <div class="card-header">
+                                    <h3 class="card-title">5 ประเภทครุภัณฑ์ที่เยอะที่สุด</h3>
+                                </div>
+                                <div class="card-body">
+                                     <canvas id="typeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                             <div class="card card-warning">
+                                <div class="card-header">
+                                    <h3 class="card-title">เวลาซ่อมเฉลี่ย (ตามประเภท)</h3>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="avgTimeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                 <p id="ioMessage" class="message mt-2"></p>
             </div>
-          </div>
         </div>
 
-        <!-- Users View -->
+        <!-- Equipment Management View -->
+        <div id="equipment-view" class="content-section" style="display: none;">
+             <!-- Content Header (Page header) -->
+             <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">จัดการครุภัณฑ์</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.content-header -->
+             <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                     <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">รายการครุภัณฑ์ทั้งหมด</h3>
+                                    <div class="card-tools">
+                                        <button id="importBtn" class="btn btn-info btn-sm-6"><i class="fas fa-file-import"></i> นำเข้า CSV</button>
+                                          <div class="custom-file custom-file-sm d-inline-block" style="width: auto;">
+                                              <input type="file" class="custom-file-input" id="csvFile" accept=".csv">
+                                              <label class="custom-file-label" for="csvFile" id="csvFileName">เลือกไฟล์</label>
+                                          </div>
+                                        <button id="addEquipmentBtn" class="btn btn-success btn-sm-6"><i class="fas fa-plus"></i> เพิ่มครุภัณฑ์</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                             <form id="searchForm" class="form-inline">
+                                                <div class="input-group">
+                                                    <input type="search" id="searchInput" class="form-control" placeholder="ค้นหา...">
+                                                    <div class="input-group-append">
+                                                        <button type="submit" class="btn btn-default"><i class="fas fa-search"></i></button>
+                                                        <button type="button" id="resetSearchBtn" class="btn btn-default" style="display: none;"><i class="fas fa-times"></i></button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="col-md-6 text-right">
+                                             <div id="ioMessage" style="display: none;"></div>
+                                             
+                                            <button id="exportBtn" class="btn btn-warning btn-sm"><i class="fas fa-file-export"></i> ส่งออก CSV</button>
+                                            <button id="printQrBtn" class="btn btn-primary btn-sm"><i class="fas fa-print"></i> พิมพ์ QR Code</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 100px;">QR Code</th>
+                                                    <th>เลขครุภัณฑ์</th>
+                                                    <th>ชื่ออุปกรณ์</th>
+                                                    <th>ประเภท</th>
+                                                    <th>สถานที่</th>
+                                                    <th>สถานะ</th>
+                                                    <th style="width: 150px;">จัดการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="equipmentTableBody"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="card-footer clearfix">
+                                    <div id="pagination-controls"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Repairs Management View -->
+        <div id="repairs-view" class="content-section" style="display: none;">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">รายการแจ้งซ่อมทั้งหมด</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="card">
+                        <div class="card-body table-responsive p-0">
+                            <table class="table table-hover text-nowrap">
+                                <thead>
+                                    <tr>
+                                        <th>เลขครุภัณฑ์</th>
+                                        <th>ปัญหา</th>
+                                        <th>ผู้แจ้ง</th>
+                                        <th>วันที่แจ้ง</th>
+                                        <th>สถานะ</th>
+                                        <th class="text-right">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminRepairsTableBody">
+                                    <!-- Repair requests will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- User Management View -->
         <div id="users-view" class="content-section" style="display: none;">
-          <div class="card card-primary card-outline">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-users"></i> รายการผู้ใช้งาน</h3>
-              <div class="card-tools">
-                <button id="addUserBtn" class="btn btn-primary btn-sm">
-                  <i class="fas fa-user-plus"></i> เพิ่มผู้ใช้งานใหม่
-                </button>
-              </div>
+             <!-- Content Header (Page header) -->
+             <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">จัดการผู้ใช้งาน</h1>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body table-responsive p-0">
-              <table id="usersTable" class="table table-bordered table-hover text-nowrap">
-                <thead>
-                  <tr>
-                    <th>ชื่อ-นามสกุล</th>
-                    <th>ชื่อผู้ใช้ (Username)</th>
-                    <th>บทบาท (Role)</th>
-                    <th style="width: 150px;">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody id="usersTableBody"></tbody>
-              </table>
-            </div>
-          </div>
+            <!-- /.content-header -->
+             <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">รายชื่อผู้ใช้งานในระบบ</h3>
+                            <div class="card-tools">
+                                <button class="btn btn-success btn-sm" id="addUserBtn"><i class="fas fa-user-plus"></i> เพิ่มผู้ใช้ใหม่</button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>ชื่อ-นามสกุล</th>
+                                        <th>ชื่อผู้ใช้ (Username)</th>
+                                        <th>บทบาท (Role)</th>
+                                        <th style="width: 120px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- User list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
+    </div>
+    <!-- /.content-wrapper -->
 
-      </div>
-    </section>
-  </div>
+     <!-- Main Footer -->
+    <footer class="main-footer">
+        <strong>Copyright &copy; 2025 <a href="#">Information Technology QSHC</a>.</strong> All rights reserved.
+    </footer>
 </div>
+<!-- ./wrapper -->
 
+<!-- MODALS -->
+
+<!-- Equipment Modal -->
 <div class="modal fade" id="equipmentModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="modalTitle"></h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">เพิ่ม/แก้ไขครุภัณฑ์</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
             <div class="modal-body">
                 <form id="equipmentForm">
                     <input type="hidden" id="equipmentId">
-                    <div class="form-group"><label for="assetNumber">เลขครุภัณฑ์</label><input type="text" class="form-control" id="assetNumber" required></div>
-                    <div class="form-group"><label for="name">ชื่ออุปกรณ์</label><input type="text" class="form-control" id="name" required></div>
-                    <div class="form-group"><label for="type">ประเภท</label><input type="text" class="form-control" id="type"></div>
-                    <div class="form-group"><label for="location">สถานที่ติดตั้ง</label><input type="text" class="form-control" id="location"></div>
-                    <div class="form-group"><label for="status">สถานะ</label><select id="status" class="form-control"><option value="Normal">ปกติ (Normal)</option><option value="In Repair">กำลังซ่อม (In Repair)</option><option value="Disposed">จำหน่าย (Disposed)</option></select></div>
+                    <div class="form-group">
+                        <label for="assetNumber">เลขครุภัณฑ์</label>
+                        <input type="text" class="form-control" id="assetNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">ชื่ออุปกรณ์</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="type">ประเภท</label>
+                        <input type="text" class="form-control" id="type">
+                    </div>
+                    <div class="form-group">
+                        <label for="location">สถานที่</label>
+                        <input type="text" class="form-control" id="location">
+                    </div>
+                    <div class="form-group">
+                        <label for="status">สถานะ</label>
+                        <select class="form-control" id="status">
+                            <option>Normal</option>
+                            <option>In Repair</option>
+                            <option>Disposed</option>
+                        </select>
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button><button type="submit" form="equipmentForm" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                <button type="submit" form="equipmentForm" class="btn btn-primary">บันทึก</button>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="detailsModalTitle"></h5><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalTitle">รายละเอียดครุภัณฑ์</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
             <div class="modal-body">
-                <h6><i class="fas fa-info-circle"></i> รายละเอียดครุภัณฑ์</h6>
-                <dl class="row details-dl">
-                  <dt class="col-sm-3">เลขครุภัณฑ์:</dt><dd class="col-sm-9" id="detailsAssetNumber"></dd>
-                  <dt class="col-sm-3">ชื่ออุปกรณ์:</dt><dd class="col-sm-9" id="detailsAssetName"></dd>
-                  <dt class="col-sm-3">ประเภท:</dt><dd class="col-sm-9" id="detailsAssetType"></dd>
-                  <dt class="col-sm-3">สถานที่:</dt><dd class="col-sm-9" id="detailsAssetLocation"></dd>
-                  <dt class="col-sm-3">สถานะ:</dt><dd class="col-sm-9" id="detailsAssetStatus"></dd>
-                </dl>
+                <div class="row">
+                    <div class="col-md-8">
+                        <dl class="row">
+                          <dt class="col-sm-4">เลขครุภัณฑ์:</dt>
+                          <dd class="col-sm-8" id="detailsAssetNumber"></dd>
+                          <dt class="col-sm-4">ชื่ออุปกรณ์:</dt>
+                          <dd class="col-sm-8" id="detailsAssetName"></dd>
+                          <dt class="col-sm-4">ประเภท:</dt>
+                          <dd class="col-sm-8" id="detailsAssetType"></dd>
+                          <dt class="col-sm-4">สถานที่:</dt>
+                          <dd class="col-sm-8" id="detailsAssetLocation"></dd>
+                           <dt class="col-sm-4">สถานะ:</dt>
+                          <dd class="col-sm-8" id="detailsAssetStatus"></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div id="detailsModalQrCode"></div>
+                    </div>
+                </div>
                 <hr>
-                <h6><i class="fas fa-history"></i> ประวัติการแจ้งซ่อม</h6>
+                <h6>ประวัติการแจ้งซ่อม</h6>
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
+                    <table class="table table-sm">
                         <thead>
-                          <tr>
-                            <th>วันที่แจ้ง</th>
-                            <th>ผู้แจ้ง</th>
-                            <th>ปัญหา</th>
-                            <th>วันที่รับงาน</th>
-                            <th>วันที่ซ่อมเสร็จ</th>
-                            <th>สรุประยะเวลา</th>
-                            <th>สถานะ</th>
-                          </tr>
+                            <tr>
+                                <th>วันที่แจ้ง</th>
+                                <th>ผู้แจ้ง</th>
+                                <th>ปัญหา</th>
+                                <th>รับงาน</th>
+                                <th>ซ่อมเสร็จ</th>
+                                <th>ระยะเวลา</th>
+                                <th>สถานะ</th>
+                                <th>จัดการ</th>
+                            </tr>
                         </thead>
                         <tbody id="detailsHistoryTableBody"></tbody>
                     </table>
                 </div>
-                <hr>
-                <div id="detailsModalQrCode" class="qr-code-modal-container"></div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button></div>
         </div>
     </div>
 </div>
 
+<!-- User Management Modal -->
 <div class="modal fade" id="userModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="userModalTitle">เพิ่มผู้ใช้งานใหม่</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h5 class="modal-title" id="userModalTitle">เพิ่ม/แก้ไขผู้ใช้งาน</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <form id="userForm">
                     <input type="hidden" id="userId">
-                    <div class="form-group"><label for="userFullName">ชื่อ-นามสกุล</label><input type="text" class="form-control" id="userFullName" required></div>
-                    <div class="form-group"><label for="userUsername">ชื่อผู้ใช้ (Username)</label><input type="text" class="form-control" id="userUsername" required></div>
-                    <div class="form-group"><label for="userPassword">รหัสผ่าน</label><input type="password" class="form-control" id="userPassword" placeholder="กรอกเพื่อตั้งรหัสผ่านใหม่"></div>
-                     <div class="form-group"><label for="userConfirmPassword">ยืนยันรหัสผ่าน</label><input type="password" class="form-control" id="userConfirmPassword"></div>
                     <div class="form-group">
-                        <label for="userRole">บทบาท (Role)</label>
+                        <label for="userFullName">ชื่อ-นามสกุล</label>
+                        <input type="text" class="form-control" id="userFullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userUsername">ชื่อผู้ใช้ (Username)</label>
+                        <input type="text" class="form-control" id="userUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userRole">บทบาท</label>
                         <select id="userRole" class="form-control">
                             <option value="user">User</option>
                             <option value="technician">Technician</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="userPassword">รหัสผ่าน</label>
+                        <input type="password" class="form-control" id="userPassword">
+                    </div>
+                    <div class="form-group">
+                        <label for="userConfirmPassword">ยืนยันรหัสผ่าน</label>
+                        <input type="password" class="form-control" id="userConfirmPassword">
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button><button type="submit" form="userForm" class="btn btn-primary"><i class="fas fa-save"></i> บันทึกข้อมูล</button></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">ยกเลิก</button>
+                <button type="submit" form="userForm" class="btn btn-primary">บันทึก</button>
+            </div>
         </div>
     </div>
 </div>
 
-<div id="print-area"></div>
+<!-- Admin Repair Management Modal -->
+<div class="modal fade" id="adminRepairModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">จัดการรายการแจ้งซ่อม</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <form id="adminRepairForm">
+                <div class="modal-body">
+                    <input type="hidden" id="adminRepairId">
+                    <p><strong>เลขครุภัณฑ์:</strong> <span id="adminModalAssetNumber"></span></p>
+                    <p><strong>ผู้แจ้ง:</strong> <span id="adminModalRequestUser"></span></p>
+                    <p><strong>ติดต่อ:</strong> <span id="adminModalContactInfo"></span></p>
+                    <p><strong>วันที่แจ้ง:</strong> <span id="adminModalRequestDate"></span></p>
+                    <p><strong>ปัญหา:</strong> <span id="adminModalProblem"></span></p>
+                    <hr>
+                    <div class="form-group">
+                        <label for="adminModalStatus">สถานะ</label>
+                        <select id="adminModalStatus" class="form-control">
+                            <option value="Pending">รอดำเนินการ</option>
+                            <option value="In Progress">กำลังดำเนินการ</option>
+                            <option value="Completed">ซ่อมสำเร็จ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminSolutionNotes">บันทึกการซ่อม</label>
+                        <textarea id="adminSolutionNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
+
+<!-- Print Area -->
+<div id="print-area" style="display: none;"></div>
+
+<!-- REQUIRED SCRIPTS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ekko-lightbox/5.3.0/ekko-lightbox.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
